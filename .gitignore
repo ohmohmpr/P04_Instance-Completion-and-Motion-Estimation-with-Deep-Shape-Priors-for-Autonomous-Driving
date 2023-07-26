@@ -2,6 +2,8 @@ data/
 gt/
 result/
 **/.DS_Store
+KISS-ICP/python/kiss_icp/pipeline1.py
+KISS-ICP/python/kiss_icp/tools/visualizer1.py
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,c++
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,c++

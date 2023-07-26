@@ -28,6 +28,7 @@ from functools import partial
 from typing import Callable, List
 
 import numpy as np
+from kiss_icp.tools.utils import translate_boxes_to_open3d_instance
 
 YELLOW = np.array([1, 0.706, 0])
 RED = np.array([128, 0, 0]) / 255.0
@@ -82,9 +83,9 @@ class RegistrationVisualizer(StubVisualizer):
             self.render_source,
         )
 
-    def update(self, source, keypoints, target_map, pose):
+    def update(self, source, keypoints, target_map, pose, bboxes):
         target = target_map.point_cloud()
-        self._update_geometries(source, keypoints, target, pose)
+        self._update_geometries(source, keypoints, target, pose, bboxes)
         while self.block_vis:
             self.vis.poll_events()
             self.vis.update_renderer()
@@ -193,7 +194,7 @@ class RegistrationVisualizer(StubVisualizer):
             for frame in self.frames:
                 self.vis.remove_geometry(frame, reset_bounding_box=False)
 
-    def _update_geometries(self, source, keypoints, target, pose):
+    def _update_geometries(self, source, keypoints, target, pose, bboxes):
         # Source hot frame
         if self.render_source:
             self.source.points = self.o3d.utility.Vector3dVector(source)
@@ -227,6 +228,19 @@ class RegistrationVisualizer(StubVisualizer):
         new_frame.compute_vertex_normals()
         new_frame.transform(pose)
         self.frames.append(new_frame)
+        
+        # Bounding Boxes
+        # Create a box
+        for box in bboxes:
+            print("box", box)
+            line_set, box3d = translate_boxes_to_open3d_instance(box)
+            # line_set.paint_uniform_color(self.color_codes[bboxes[i]['frames'][-1]['idx']]) 
+            line_set.paint_uniform_color((0, 1, 0))
+            self.vis.add_geometry(line_set, reset_bounding_box=False)
+            
+        
+        
+        
         # Render trajectory, only if it make sense (global view)
         if self.render_trajectory and self.global_view:
             self.vis.add_geometry(self.frames[-1], reset_bounding_box=False)
