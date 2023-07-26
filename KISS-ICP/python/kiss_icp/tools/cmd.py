@@ -132,6 +132,11 @@ def kiss_icp_pipeline(
         callback=name_callback,
         help="[Optional] Use a specific dataloader from those supported by KISS-ICP",
     ),
+    bounding_boxes: Path = typer.Argument(
+        ...,
+        help="The bounding boxes file from any LiDAR-based 3D object detection.",
+        show_default=False,
+    ),
     config: Optional[Path] = typer.Option(
         None,
         "--config",
@@ -235,6 +240,7 @@ def kiss_icp_pipeline(
             topic=topic,
             meta=meta,
         ),
+        bounding_boxes=bounding_boxes,
         config=config,
         deskew=deskew,
         max_range=max_range,
