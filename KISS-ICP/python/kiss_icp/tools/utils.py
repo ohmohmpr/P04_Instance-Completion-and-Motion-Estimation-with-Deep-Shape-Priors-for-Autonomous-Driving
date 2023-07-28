@@ -1,6 +1,116 @@
+from bbox import  BBox3D
+from bbox.metrics import iou_3d
+from dataclasses import dataclass, field
 import numpy as np
 import open3d as o3d
+from pyquaternion import Quaternion
+from typing import Dict
 
+@dataclass
+class BoundingBox3D:
+    x: float
+    y: float
+    z: float
+    length: float
+    width: float
+    height: float
+    axis_angles: float
+    q8d: float = field(init=False)
+    bBox3D: BBox3D = field(init=False)
+    
+    def from_Axis_angle_to_Quaternion(self, axis_angles):
+        _axis_angles = np.array([0, 0, axis_angles + 1e-10])
+        rot = o3d.geometry.get_rotation_matrix_from_axis_angle(_axis_angles)
+        q8d = Quaternion(matrix=rot)
+        return q8d
+    
+    def __post_init__(self):
+        self.q8d: str = self.from_Axis_angle_to_Quaternion(self.axis_angles)
+        self.bBox3D: BBox3D = BBox3D(self.x, self.y, self.z, self.length, self.width, self.height, q=self.q8d)
+    
+@dataclass
+class Pose:
+    x: float
+    y: float
+    z: float
+    length: float
+    width: float
+    height: float
+    axis_angles: float
+    q8d: float
+    bBox3D: BBox3D = field(init=False)
+    
+    def from_Axis_angle_to_Quaternion(self, axis_angles):
+        _axis_angles = np.array([0, 0, axis_angles + 1e-10])
+        rot = o3d.geometry.get_rotation_matrix_from_axis_angle(_axis_angles)
+        q8d = Quaternion(matrix=rot)
+        return q8d
+    
+    def __post_init__(self):
+        self.q8d: str = self.from_Axis_angle_to_Quaternion(self.axis_angles)
+        self.bBox3D: BBox3D = BBox3D(self.x, self.y, self.z, self.length, self.width, self.height, q=self.q8d)
+
+@dataclass
+class Instance:
+    id: int
+    s_pose: Dict[int, Pose]
+    g_pose: Dict[int, Pose]
+
+
+class InstanceAssociation:
+    def __init__(self):
+        self.instances = {}
+        self.current_instances = {}
+        self.ID = 0
+        self.newly_added_instances = {}
+
+    def update(self, bBoxes3D, frames_ID):
+        
+        self.newly_added_instances = {}
+        for bBox3D in bBoxes3D:
+            
+            s_pose = {}
+            g_pose = {}
+            s_pose[frames_ID] = Pose(bBox3D.x, bBox3D.y, bBox3D.z, 
+                                    bBox3D.length, bBox3D.width, bBox3D.height, 
+                                    bBox3D.axis_angles, bBox3D.q8d)
+            g_pose[frames_ID] = Pose(bBox3D.x, bBox3D.y, bBox3D.z, 
+                                    bBox3D.length, bBox3D.width, bBox3D.height, 
+                                    bBox3D.axis_angles, bBox3D.q8d)
+            
+            self.instances[self.ID] = Instance(self.ID, s_pose, g_pose)
+            self.newly_added_instances[self.ID] = Instance(self.ID, s_pose, g_pose)
+            self.ID = self.ID + 1
+        
+    def get_current_instances(self, current_frame, num_consecutive_frames=1):
+        ## WE CAN USE QUEUE HERE
+        starting_frame = current_frame - num_consecutive_frames + 1
+        self.add_newly_added_instances()
+        self.delete_old_instances(starting_frame)
+                    
+        return self.current_instances
+         
+         
+    def add_newly_added_instances(self):
+        if self.newly_added_instances:
+            for id, newly_added_instance in self.newly_added_instances.items():
+                try:
+                    self.current_instances[id] = newly_added_instance
+                except KeyError:
+                    pass
+        
+    def delete_old_instances(self, starting_frame):
+        frame = starting_frame - 1
+        idx = []
+        for id, instance in self.current_instances.items():
+            try:
+                if instance.g_pose[frame]:
+                    idx.append(id)
+            except KeyError:
+                    pass
+        for id in idx: 
+            self.current_instances.pop(id)
+        
 def translate_boxes_to_open3d_instance(bbox):
     """
             4-------- 6

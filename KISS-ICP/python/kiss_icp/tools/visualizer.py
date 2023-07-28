@@ -28,7 +28,7 @@ from functools import partial
 from typing import Callable, List
 
 import numpy as np
-from kiss_icp.tools.utils import translate_boxes_to_open3d_instance
+from kiss_icp.tools.utils import translate_boxes_to_open3d_instance, BoundingBox3D, InstanceAssociation
 
 YELLOW = np.array([1, 0.706, 0])
 RED = np.array([128, 0, 0]) / 255.0
@@ -64,6 +64,10 @@ class RegistrationVisualizer(StubVisualizer):
         self.keypoints = self.o3d.geometry.PointCloud()
         self.target = self.o3d.geometry.PointCloud()
         self.frames = []
+        
+        # Instance association
+        self.InstanceAssociation = InstanceAssociation()
+        self.frames_ID = -1
 
         # Initialize visualizer
         self.vis = self.o3d.visualization.VisualizerWithKeyCallback()
@@ -229,14 +233,20 @@ class RegistrationVisualizer(StubVisualizer):
         new_frame.transform(pose)
         self.frames.append(new_frame)
         
-        # Bounding Boxes
-        # Create a box
-        for box in bboxes:
-            print("box", box)
-            line_set, box3d = translate_boxes_to_open3d_instance(box)
+        # Bounding Boxes, Create a box
+        self.frames_ID = self.frames_ID + 1
+        
+        boundingBoxes3D = [BoundingBox3D(*bbox) for bbox in bboxes]
+        self.InstanceAssociation.update(boundingBoxes3D, self.frames_ID)
+        
+        # for box in bboxes:
+            # line_set, box3d = translate_boxes_to_open3d_instance(box)
             # line_set.paint_uniform_color(self.color_codes[bboxes[i]['frames'][-1]['idx']]) 
-            line_set.paint_uniform_color((0, 1, 0))
-            self.vis.add_geometry(line_set, reset_bounding_box=False)
+            # line_set.paint_uniform_color((0, 1, 0))
+            # self.vis.add_geometry(line_set, reset_bounding_box=False)
+            
+        get_current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 2)
+        print("get_current_instances", get_current_instances)
             
         
         
