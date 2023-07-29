@@ -1,61 +1,12 @@
 from bbox import  BBox3D
 from bbox.metrics import iou_3d
 from dataclasses import dataclass, field
+from kiss_icp.tools.utils_class import TempInstance, Instance
 import numpy as np
 import open3d as o3d
-from pyquaternion import Quaternion
 from typing import Dict
 
-@dataclass
-class BoundingBox3D:
-    x: float
-    y: float
-    z: float
-    length: float
-    width: float
-    height: float
-    axis_angles: float
-    q8d: float = field(init=False)
-    bBox3D: BBox3D = field(init=False)
-    
-    def from_Axis_angle_to_Quaternion(self, axis_angles):
-        _axis_angles = np.array([0, 0, axis_angles + 1e-10])
-        rot = o3d.geometry.get_rotation_matrix_from_axis_angle(_axis_angles)
-        q8d = Quaternion(matrix=rot)
-        return q8d
-    
-    def __post_init__(self):
-        self.q8d: str = self.from_Axis_angle_to_Quaternion(self.axis_angles)
-        self.bBox3D: BBox3D = BBox3D(self.x, self.y, self.z, self.length, self.width, self.height, q=self.q8d)
-    
-@dataclass
-class Pose:
-    x: float
-    y: float
-    z: float
-    length: float
-    width: float
-    height: float
-    axis_angles: float
-    q8d: float
-    bBox3D: BBox3D = field(init=False)
-    
-    def from_Axis_angle_to_Quaternion(self, axis_angles):
-        _axis_angles = np.array([0, 0, axis_angles + 1e-10])
-        rot = o3d.geometry.get_rotation_matrix_from_axis_angle(_axis_angles)
-        q8d = Quaternion(matrix=rot)
-        return q8d
-    
-    def __post_init__(self):
-        self.q8d: str = self.from_Axis_angle_to_Quaternion(self.axis_angles)
-        self.bBox3D: BBox3D = BBox3D(self.x, self.y, self.z, self.length, self.width, self.height, q=self.q8d)
-
-@dataclass
-class Instance:
-    id: int
-    s_pose: Dict[int, Pose]
-    g_pose: Dict[int, Pose]
-
+color_table = np.load('data/kiss-icp/color_table/color_table.npy')
 
 class InstanceAssociation:
     def __init__(self):
@@ -63,33 +14,67 @@ class InstanceAssociation:
         self.current_instances = {}
         self.ID = 0
         self.newly_added_instances = {}
+        self.iou_threshold = 0
 
-    def update(self, bBoxes3D, frames_ID):
+    def update(self, ego_car_pose, bBoxes3D, frames_ID):
         
         self.newly_added_instances = {}
+        find_in = "global_frame"
         for bBox3D in bBoxes3D:
-            
-            s_pose = {}
-            g_pose = {}
-            s_pose[frames_ID] = Pose(bBox3D.x, bBox3D.y, bBox3D.z, 
-                                    bBox3D.length, bBox3D.width, bBox3D.height, 
-                                    bBox3D.axis_angles, bBox3D.q8d)
-            g_pose[frames_ID] = Pose(bBox3D.x, bBox3D.y, bBox3D.z, 
-                                    bBox3D.length, bBox3D.width, bBox3D.height, 
-                                    bBox3D.axis_angles, bBox3D.q8d)
-            
-            self.instances[self.ID] = Instance(self.ID, s_pose, g_pose)
-            self.newly_added_instances[self.ID] = Instance(self.ID, s_pose, g_pose)
-            self.ID = self.ID + 1
+            tmp_box = TempInstance(bBox3D, ego_car_pose)
+            is_found = self.find_in_current_instances(tmp_box, frames_ID, find_in)
+                    
+            if not is_found:
+                ################## SKIP READING ##################
+                # Create KEYS
+                s_pose_visual = { frames_ID: tmp_box.s_pose_visual }
+                g_pose_visual = { frames_ID: tmp_box.g_pose_visual }
+                s_pose_iou = { frames_ID: tmp_box.s_pose_iou }
+                g_pose_iou = { frames_ID: tmp_box.g_pose_iou }
+                ################## SKIP READING ##################
+                
+                # Add to instances and newly_added_instances
+                color_code = color_table[self.ID]
+                self.instances[self.ID] = Instance(self.ID, frames_ID, color_code, 
+                                                   s_pose_visual, g_pose_visual,
+                                                   s_pose_iou, g_pose_iou)
+                self.newly_added_instances[self.ID] = Instance(self.ID, frames_ID, color_code,
+                                                   s_pose_visual, g_pose_visual,
+                                                   s_pose_iou, g_pose_iou)
+                self.ID = self.ID + 1
+        
+        
+    def find_in_current_instances(self, tmp_box, frames_ID, find_in):
+        is_found = False
+        
+        if find_in == "global_frame":
+            for id, current_instance in self.current_instances.items():
+                if iou_3d(tmp_box.g_pose_iou, current_instance.g_pose_ious[current_instance.last_frame]) > self.iou_threshold :
+                    print("IOU", iou_3d(tmp_box.g_pose_iou, current_instance.g_pose_ious[current_instance.last_frame]))
+                    self.update_instances(current_instance, id, frames_ID, tmp_box)
+                    is_found = True
+        elif find_in == "sensor_frame":
+            for id, current_instance in self.current_instances.items():
+                if iou_3d(tmp_box.s_pose_iou, current_instance.s_pose_ious[current_instance.last_frame]) > self.iou_threshold :
+                    self.update_instances(current_instance, id, frames_ID, tmp_box)
+                    is_found = True
+        
+        return is_found
+        
+    def update_instances(self, instance, id, frames_ID, tmp_box):
+        instance.s_pose_visuals[frames_ID] =  tmp_box.s_pose_visual
+        instance.g_pose_visuals[frames_ID] =  tmp_box.g_pose_visual
+        instance.s_pose_ious[frames_ID] =  tmp_box.s_pose_iou
+        instance.g_pose_ious[frames_ID] =  tmp_box.g_pose_iou
         
     def get_current_instances(self, current_frame, num_consecutive_frames=1):
         ## WE CAN USE QUEUE HERE
         starting_frame = current_frame - num_consecutive_frames + 1
         self.add_newly_added_instances()
+        self.get_only_last_frame_for_each_instance(starting_frame, current_frame)
         self.delete_old_instances(starting_frame)
-                    
+        
         return self.current_instances
-         
          
     def add_newly_added_instances(self):
         if self.newly_added_instances:
@@ -98,19 +83,44 @@ class InstanceAssociation:
                     self.current_instances[id] = newly_added_instance
                 except KeyError:
                     pass
-        
+                
+                
+    def get_only_last_frame_for_each_instance(self, starting_frame, current_frame):
+        for id, instance in self.current_instances.items():
+            for f in range(current_frame, starting_frame-1, -1):
+                try:
+                    if instance.g_pose_ious[f]:
+                        instance.last_frame = f
+                        self.pop(instance, f, starting_frame)
+                except KeyError:
+                        pass
+         
+    def pop(self, instance, frame, starting_frame):
+        if frame == starting_frame:
+            return
+        try:
+            instance.s_pose_visuals.pop(frame-1)
+            instance.g_pose_visuals.pop(frame-1)
+            instance.s_pose_ious.pop(frame-1)
+            instance.g_pose_ious.pop(frame-1)
+        except KeyError:
+                pass
+            
+        return self.pop(instance, frame-1, starting_frame)
+    
+    
     def delete_old_instances(self, starting_frame):
         frame = starting_frame - 1
         idx = []
         for id, instance in self.current_instances.items():
             try:
-                if instance.g_pose[frame]:
+                if instance.g_pose_ious[frame]:
                     idx.append(id)
             except KeyError:
                     pass
         for id in idx: 
             self.current_instances.pop(id)
-        
+            
 def translate_boxes_to_open3d_instance(bbox):
     """
             4-------- 6
@@ -122,11 +132,9 @@ def translate_boxes_to_open3d_instance(bbox):
         2 -------- 0
     https://github.com/open-mmlab/OpenPCDet/blob/master/tools/visual_utils/open3d_vis_utils.py
     """
-    center = bbox[0:3]
-    lwh = bbox[3:6]
-    axis_angles = np.array([0, 0, bbox[6] + 1e-10])
-    rot = o3d.geometry.get_rotation_matrix_from_axis_angle(axis_angles)
-    box3d = o3d.geometry.OrientedBoundingBox(center, rot, lwh)
+    center = [bbox.x, bbox.y, bbox.z]
+    lwh = [bbox.length, bbox.width, bbox.height]
+    box3d = o3d.geometry.OrientedBoundingBox(center, bbox.rot, lwh)
 
     line_set = o3d.geometry.LineSet.create_from_oriented_bounding_box(box3d)
 
@@ -137,29 +145,3 @@ def translate_boxes_to_open3d_instance(bbox):
     line_set.lines = o3d.utility.Vector2iVector(lines)
 
     return line_set, box3d
-    
-    
-# def translate_boxes_to_open3d_instance(self, bbox):
-#     """
-#             4-------- 6
-#         /|         /|
-#         5 -------- 3 .
-#         | |        | |
-#         . 7 -------- 1
-#         |/         |/
-#         2 -------- 0
-#     """
-#     center = bbox[0:3]
-#     lwh = bbox[3:6]
-#     axis_angles = np.array([0, 0, bbox[6] + 1e-10])
-#     rot = self.o3d.geometry.get_rotation_matrix_from_axis_angle(axis_angles)
-#     box3d = self.o3d.geometry.OrientedBoundingBox(center, rot, lwh)
-
-#     line_set = self.o3d.geometry.LineSet.create_from_oriented_bounding_box(box3d)
-
-#     # import ipdb; ipdb.set_trace(context=20)
-#     lines = np.asarray(line_set.lines)
-#     lines = np.concatenate([lines, np.array([[1, 4], [7, 6]])], axis=0)
-
-#     line_set.lines = self.o3d.utility.Vector2iVector(lines)
-#     return line_set, box3d

@@ -28,7 +28,9 @@ from functools import partial
 from typing import Callable, List
 
 import numpy as np
-from kiss_icp.tools.utils import translate_boxes_to_open3d_instance, BoundingBox3D, InstanceAssociation
+import open3d as o3d
+from kiss_icp.tools.utils import translate_boxes_to_open3d_instance, InstanceAssociation
+from kiss_icp.tools.utils_class import BoundingBox3D
 
 YELLOW = np.array([1, 0.706, 0])
 RED = np.array([128, 0, 0]) / 255.0
@@ -236,17 +238,47 @@ class RegistrationVisualizer(StubVisualizer):
         # Bounding Boxes, Create a box
         self.frames_ID = self.frames_ID + 1
         
-        boundingBoxes3D = [BoundingBox3D(*bbox) for bbox in bboxes]
-        self.InstanceAssociation.update(boundingBoxes3D, self.frames_ID)
+        ego_car_pose = pose
         
-        # for box in bboxes:
-            # line_set, box3d = translate_boxes_to_open3d_instance(box)
-            # line_set.paint_uniform_color(self.color_codes[bboxes[i]['frames'][-1]['idx']]) 
-            # line_set.paint_uniform_color((0, 1, 0))
-            # self.vis.add_geometry(line_set, reset_bounding_box=False)
+        boundingBoxes3D = []
+        
+        for bbox in bboxes:
+            axis_angles = np.array([0, 0, bbox[6] + 1e-10])
+            rot = o3d.geometry.get_rotation_matrix_from_axis_angle(axis_angles)
+            boundingBoxes3D += [BoundingBox3D(bbox[0], bbox[1], bbox[2], bbox[3], bbox[4], bbox[5], rot)]
+
+        self.InstanceAssociation.update(ego_car_pose, boundingBoxes3D, self.frames_ID)
+        current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 3)
+        print("current_instances\n", current_instances)
+        
+        # Visual in sensor frame
+        for id, current_instance in current_instances.items():
+            if current_instance.last_frame == self.frames_ID:
+                color_code = current_instance.color_code
+                
+                if self.global_view:
+                    bbox = current_instance.g_pose_visuals[current_instance.last_frame]
+                else:
+                    bbox = current_instance.s_pose_visuals[current_instance.last_frame]
+                    
+                line_set, box3d = translate_boxes_to_open3d_instance(bbox)
+                line_set.paint_uniform_color(color_code)
+                
+                
+                self.vis.add_geometry(line_set, reset_bounding_box=False)
+
             
-        get_current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 2)
-        print("get_current_instances", get_current_instances)
+        # for id, current_instance in current_instances.items():
+        #     # bbox = current_instance.s_pose[current_instance.last_frame]
+        #     color_code = current_instance.color_code
+        #     # line_set = self.InstanceAssociation.translate_boxes_to_open3d_instance(bbox)
+        #     current_instance.s_line_set.paint_uniform_color(color_code)
+        #     self.vis.add_geometry(current_instance.s_line_set, reset_bounding_box=False)
+            
+        #     # line_set, box3d = translate_boxes_to_open3d_instance(bbox)
+        #     # line_set.paint_uniform_color(color_code)
+        #     # self.vis.add_geometry(line_set, reset_bounding_box=False)
+        #     print("current_instances", current_instance)
             
         
         
