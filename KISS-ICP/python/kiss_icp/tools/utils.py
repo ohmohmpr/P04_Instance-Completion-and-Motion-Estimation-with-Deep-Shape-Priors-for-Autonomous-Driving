@@ -47,17 +47,12 @@ class InstanceAssociation:
     def find_in_current_instances(self, tmp_box, frames_ID, find_in):
         is_found = False
         
-        if find_in == "global_frame":
-            for id, current_instance in self.current_instances.items():
-                if iou_3d(tmp_box.g_pose_iou, current_instance.g_pose_ious[current_instance.last_frame]) > self.iou_threshold :
-                    print("IOU", iou_3d(tmp_box.g_pose_iou, current_instance.g_pose_ious[current_instance.last_frame]))
-                    self.update_instances(current_instance, id, frames_ID, tmp_box)
-                    is_found = True
-        elif find_in == "sensor_frame":
-            for id, current_instance in self.current_instances.items():
-                if iou_3d(tmp_box.s_pose_iou, current_instance.s_pose_ious[current_instance.last_frame]) > self.iou_threshold :
-                    self.update_instances(current_instance, id, frames_ID, tmp_box)
-                    is_found = True
+        for id, current_instance in self.current_instances.items():
+            if iou_3d(tmp_box.g_pose_iou, current_instance.g_pose_ious[current_instance.last_frame]) or \
+            iou_3d(tmp_box.s_pose_iou, current_instance.s_pose_ious[current_instance.last_frame]) \
+            > self.iou_threshold :
+                self.update_instances(current_instance, id, frames_ID, tmp_box)
+                is_found = True
         
         return is_found
         
@@ -137,8 +132,6 @@ def translate_boxes_to_open3d_instance(bbox):
     box3d = o3d.geometry.OrientedBoundingBox(center, bbox.rot, lwh)
 
     line_set = o3d.geometry.LineSet.create_from_oriented_bounding_box(box3d)
-
-    # import ipdb; ipdb.set_trace(context=20)
     lines = np.asarray(line_set.lines)
     lines = np.concatenate([lines, np.array([[1, 4], [7, 6]])], axis=0)
 

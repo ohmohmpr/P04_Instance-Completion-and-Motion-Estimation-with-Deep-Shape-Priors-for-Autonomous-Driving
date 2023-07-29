@@ -70,6 +70,7 @@ class RegistrationVisualizer(StubVisualizer):
         # Instance association
         self.InstanceAssociation = InstanceAssociation()
         self.frames_ID = -1
+        self.visual_instances = []
 
         # Initialize visualizer
         self.vis = self.o3d.visualization.VisualizerWithKeyCallback()
@@ -252,6 +253,7 @@ class RegistrationVisualizer(StubVisualizer):
         print("current_instances\n", current_instances)
         
         # Visual in sensor frame
+        self.remove_all()
         for id, current_instance in current_instances.items():
             if current_instance.last_frame == self.frames_ID:
                 color_code = current_instance.color_code
@@ -263,25 +265,8 @@ class RegistrationVisualizer(StubVisualizer):
                     
                 line_set, box3d = translate_boxes_to_open3d_instance(bbox)
                 line_set.paint_uniform_color(color_code)
-                
-                
                 self.vis.add_geometry(line_set, reset_bounding_box=False)
-
-            
-        # for id, current_instance in current_instances.items():
-        #     # bbox = current_instance.s_pose[current_instance.last_frame]
-        #     color_code = current_instance.color_code
-        #     # line_set = self.InstanceAssociation.translate_boxes_to_open3d_instance(bbox)
-        #     current_instance.s_line_set.paint_uniform_color(color_code)
-        #     self.vis.add_geometry(current_instance.s_line_set, reset_bounding_box=False)
-            
-        #     # line_set, box3d = translate_boxes_to_open3d_instance(bbox)
-        #     # line_set.paint_uniform_color(color_code)
-        #     # self.vis.add_geometry(line_set, reset_bounding_box=False)
-        #     print("current_instances", current_instance)
-            
-        
-        
+                self.visual_instances.append(line_set)
         
         # Render trajectory, only if it make sense (global view)
         if self.render_trajectory and self.global_view:
@@ -293,3 +278,10 @@ class RegistrationVisualizer(StubVisualizer):
         if self.reset_bounding_box:
             self.vis.reset_view_point(True)
             self.reset_bounding_box = False
+
+    def remove_all(self):
+        length = len(self.visual_instances)
+        
+        for i in range(length):
+            self.vis.remove_geometry(self.visual_instances[0], reset_bounding_box=False)
+            self.visual_instances.pop(0)
