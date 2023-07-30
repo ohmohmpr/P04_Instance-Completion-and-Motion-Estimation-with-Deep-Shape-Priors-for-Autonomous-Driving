@@ -250,7 +250,7 @@ class RegistrationVisualizer(StubVisualizer):
 
         self.InstanceAssociation.update(ego_car_pose, boundingBoxes3D, self.frames_ID)
         current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 3)
-        print("current_instances\n", current_instances)
+        # print("current_instances\n", current_instances)
         
         # Visual in sensor frame
         self.remove_all()

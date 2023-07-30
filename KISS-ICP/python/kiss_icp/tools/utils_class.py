@@ -26,16 +26,10 @@ class TempInstance:
     g_pose_visual: BoundingBox3D = field(init=False)
     s_pose_iou: BBox3D = field(init=False)
     g_pose_iou: BBox3D = field(init=False)
-    
-    # def get_q8d_from_axisangle(self, axis_angles):
-    #     _axis_angles = np.array([0, 0, axis_angles + 1e-10])
-    #     rot = o3d.geometry.get_rotation_matrix_from_axis_angle(_axis_angles)
-    #     q8d = Quaternion(matrix=rot)
-    #     return q8d
 
     def get_g_pose(self, ego_car_pose):
         hom_s_pose = np.hstack((self.s_pose_visual.x, self.s_pose_visual.y, self.s_pose_visual.z, 1))
-        hom_g_pose = ego_car_pose @ hom_s_pose  # ego_car_pose = 4*4 matrix
+        hom_g_pose = ego_car_pose @ hom_s_pose
         
         g_rot = ego_car_pose[:3, :3] @ self.s_pose_visual.rot
         r = R.from_matrix(g_rot)
