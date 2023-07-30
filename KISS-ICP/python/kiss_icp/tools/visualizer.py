@@ -70,7 +70,7 @@ class RegistrationVisualizer(StubVisualizer):
         # Instance association
         self.InstanceAssociation = InstanceAssociation()
         self.frames_ID = -1
-        self.visual_instances = []
+        self.visual_instances = {}
 
         # Initialize visualizer
         self.vis = self.o3d.visualization.VisualizerWithKeyCallback()
@@ -250,24 +250,46 @@ class RegistrationVisualizer(StubVisualizer):
 
         self.InstanceAssociation.update(ego_car_pose, boundingBoxes3D, self.frames_ID)
         current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 3)
-        print("current_instances\n", current_instances)
+        # print("current_instances\n", current_instances)
         
-        # Visual in sensor frame
-        self.remove_all()
+        print("################################################################")
         for id, current_instance in current_instances.items():
-            if current_instance.last_frame == self.frames_ID:
-                color_code = current_instance.color_code
-                
+            if current_instance.last_frame == self.frames_ID:                
                 if self.global_view:
-                    bbox = current_instance.g_pose_visuals[current_instance.last_frame]
+                    if not(current_instance.is_added):
+                        current_instance.g_line_set.paint_uniform_color(current_instance.color_code)
+                        self.vis.add_geometry(current_instance.g_line_set, reset_bounding_box=False)
+                        self.visual_instances[current_instance.id] = current_instance.g_line_set
+                    else:
+                        self.vis.update_geometry(current_instance.g_line_set)
                 else:
-                    bbox = current_instance.s_pose_visuals[current_instance.last_frame]
-                    
-                line_set, box3d = translate_boxes_to_open3d_instance(bbox)
-                line_set.paint_uniform_color(color_code)
-                self.vis.add_geometry(line_set, reset_bounding_box=False)
-                self.visual_instances.append(line_set)
-        
+                    if not(current_instance.is_added):
+                        line_set, box3d = translate_boxes_to_open3d_instance(current_instance.s_pose_visuals[current_instance.last_frame])
+                        line_set.paint_uniform_color(current_instance.color_code)
+                        self.vis.add_geometry(line_set, reset_bounding_box=False)
+                        # self.visual_instances.append(line_set)
+                        self.visual_instances[current_instance.id] = line_set
+                    else:
+                        line_set, box3d = translate_boxes_to_open3d_instance(current_instance.s_pose_visuals[current_instance.last_frame])
+                        line_set.paint_uniform_color(current_instance.color_code)
+                        self.vis.update_geometry(line_set)
+                        # self.visual_instances.append(line_set)
+                        self.visual_instances[current_instance.id] = line_set
+
+
+                        current_instance.s_line_set.paint_uniform_color(current_instance.color_code)
+                        self.vis.update_geometry(self.visual_instances[current_instance.id])
+                        
+                        # current_instance.line_set, box3d = translate_boxes_to_open3d_instance(current_instance.s_pose_visuals[current_instance.last_frame])
+                        # current_instance.line_set.paint_uniform_color(current_instance.color_code)
+                        # # current_instance.s_line_set = line_set
+                        # print("update_line_sets")
+                        # print("s_line_set", current_instance.id)
+                        # # print("line_set.lines.__str__", line_set.lines.__str__)
+                        # print("current_instance.s_line_set.__str__", current_instance.s_line_set.lines.__str__)
+                        # # self.vis.add_geometry(line_set, reset_bounding_box=False)
+                        # self.vis.add_geometry(current_instance.s_line_set, reset_bounding_box=False)
+                        
         # Render trajectory, only if it make sense (global view)
         if self.render_trajectory and self.global_view:
             self.vis.add_geometry(self.frames[-1], reset_bounding_box=False)
@@ -278,10 +300,3 @@ class RegistrationVisualizer(StubVisualizer):
         if self.reset_bounding_box:
             self.vis.reset_view_point(True)
             self.reset_bounding_box = False
-
-    def remove_all(self):
-        length = len(self.visual_instances)
-        
-        for i in range(length):
-            self.vis.remove_geometry(self.visual_instances[0], reset_bounding_box=False)
-            self.visual_instances.pop(0)

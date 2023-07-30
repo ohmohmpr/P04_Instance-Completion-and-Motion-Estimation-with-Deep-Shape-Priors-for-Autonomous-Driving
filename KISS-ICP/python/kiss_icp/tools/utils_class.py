@@ -26,16 +26,10 @@ class TempInstance:
     g_pose_visual: BoundingBox3D = field(init=False)
     s_pose_iou: BBox3D = field(init=False)
     g_pose_iou: BBox3D = field(init=False)
-    
-    # def get_q8d_from_axisangle(self, axis_angles):
-    #     _axis_angles = np.array([0, 0, axis_angles + 1e-10])
-    #     rot = o3d.geometry.get_rotation_matrix_from_axis_angle(_axis_angles)
-    #     q8d = Quaternion(matrix=rot)
-    #     return q8d
 
     def get_g_pose(self, ego_car_pose):
         hom_s_pose = np.hstack((self.s_pose_visual.x, self.s_pose_visual.y, self.s_pose_visual.z, 1))
-        hom_g_pose = ego_car_pose @ hom_s_pose  # ego_car_pose = 4*4 matrix
+        hom_g_pose = ego_car_pose @ hom_s_pose
         
         g_rot = ego_car_pose[:3, :3] @ self.s_pose_visual.rot
         r = R.from_matrix(g_rot)
@@ -68,4 +62,88 @@ class Instance:
     g_pose_visuals: Dict[int, BoundingBox3D]
     s_pose_ious: Dict[int, BBox3D]
     g_pose_ious: Dict[int, BBox3D]
+    
+    is_added: bool
+    
+    s_line_set: ... = field(init=False)
+    g_line_set: ... = field(init=False)
+        
+    def __post_init__(self):
+        self.s_line_set = self.s_translate_boxes_to_open3d_instance()
+        self.g_line_set = self.g_translate_boxes_to_open3d_instance()
+        
+    def update_line_sets(self):
+        self.s_line_set = self.s_update_translate_boxes_to_open3d_instance()
+        self.g_line_set = self.g_update_translate_boxes_to_open3d_instance()
+        # np.asarray(current_instance.s_line_set.lines))
+        
+    def s_translate_boxes_to_open3d_instance(self):
+        """
+                4-------- 6
+            /|         /|
+            5 -------- 3 .
+            | |        | |
+            . 7 -------- 1
+            |/         |/
+            2 -------- 0
+        https://github.com/open-mmlab/OpenPCDet/blob/master/tools/visual_utils/open3d_vis_utils.py
+        """
+        center = [self.s_pose_visuals[self.last_frame].x, self.s_pose_visuals[self.last_frame].y, self.s_pose_visuals[self.last_frame].z]
+        lwh = [self.s_pose_visuals[self.last_frame].length, self.s_pose_visuals[self.last_frame].width, self.s_pose_visuals[self.last_frame].height]
+        box3d = o3d.geometry.OrientedBoundingBox(center, self.s_pose_visuals[self.last_frame].rot, lwh)
+
+        self.s_line_set = o3d.geometry.LineSet.create_from_oriented_bounding_box(box3d)
+        lines = np.asarray(self.s_line_set.lines)
+        lines = np.concatenate([lines, np.array([[1, 4], [7, 6]])], axis=0)
+
+        self.s_line_set.lines = o3d.utility.Vector2iVector(lines)
+        
+        return self.s_line_set
+
+    def g_translate_boxes_to_open3d_instance(self):
+        """
+                4-------- 6
+            /|         /|
+            5 -------- 3 .
+            | |        | |
+            . 7 -------- 1
+            |/         |/
+            2 -------- 0
+        https://github.com/open-mmlab/OpenPCDet/blob/master/tools/visual_utils/open3d_vis_utils.py
+        """
+        center = [self.g_pose_visuals[self.last_frame].x, self.g_pose_visuals[self.last_frame].y, self.g_pose_visuals[self.last_frame].z]
+        lwh = [self.g_pose_visuals[self.last_frame].length, self.g_pose_visuals[self.last_frame].width, self.g_pose_visuals[self.last_frame].height]
+        box3d = o3d.geometry.OrientedBoundingBox(center, self.g_pose_visuals[self.last_frame].rot, lwh)
+
+        self.g_line_set = o3d.geometry.LineSet.create_from_oriented_bounding_box(box3d)
+        lines = np.asarray(self.g_line_set.lines)
+        lines = np.concatenate([lines, np.array([[1, 4], [7, 6]])], axis=0)
+
+        self.g_line_set.lines = o3d.utility.Vector2iVector(lines)
+        return self.g_line_set
+        
+    def s_update_translate_boxes_to_open3d_instance(self):
+        center = [self.s_pose_visuals[self.last_frame].x, self.s_pose_visuals[self.last_frame].y, self.s_pose_visuals[self.last_frame].z]
+        lwh = [self.s_pose_visuals[self.last_frame].length, self.s_pose_visuals[self.last_frame].width, self.s_pose_visuals[self.last_frame].height]
+        box3d = o3d.geometry.OrientedBoundingBox(center, self.s_pose_visuals[self.last_frame].rot, lwh)
+        
+        line_set = o3d.geometry.LineSet.create_from_oriented_bounding_box(box3d)
+        lines = np.asarray(line_set.lines)
+        lines = np.concatenate([lines, np.array([[1, 4], [7, 6]])], axis=0)
+
+        self.s_line_set.lines = o3d.utility.Vector2iVector(lines)
+        return self.s_line_set
+        
+    def g_update_translate_boxes_to_open3d_instance(self):
+        center = [self.g_pose_visuals[self.last_frame].x, self.g_pose_visuals[self.last_frame].y, self.g_pose_visuals[self.last_frame].z]
+        lwh = [self.g_pose_visuals[self.last_frame].length, self.g_pose_visuals[self.last_frame].width, self.g_pose_visuals[self.last_frame].height]
+        box3d = o3d.geometry.OrientedBoundingBox(center, self.g_pose_visuals[self.last_frame].rot, lwh)
+        
+        lines = np.asarray(self.g_line_set.lines)
+        lines = np.concatenate([lines, np.array([[1, 4], [7, 6]])], axis=0)
+
+        self.g_line_set.lines = o3d.utility.Vector2iVector(lines)
+        return self.g_line_set
+        
+        
         

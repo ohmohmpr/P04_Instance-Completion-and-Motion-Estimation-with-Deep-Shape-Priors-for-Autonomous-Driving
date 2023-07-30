@@ -37,10 +37,10 @@ class InstanceAssociation:
                 color_code = color_table[self.ID]
                 self.instances[self.ID] = Instance(self.ID, frames_ID, color_code, 
                                                    s_pose_visual, g_pose_visual,
-                                                   s_pose_iou, g_pose_iou)
+                                                   s_pose_iou, g_pose_iou, False)
                 self.newly_added_instances[self.ID] = Instance(self.ID, frames_ID, color_code,
                                                    s_pose_visual, g_pose_visual,
-                                                   s_pose_iou, g_pose_iou)
+                                                   s_pose_iou, g_pose_iou, False)
                 self.ID = self.ID + 1
         
         
@@ -53,7 +53,7 @@ class InstanceAssociation:
             > self.iou_threshold :
                 self.update_instances(current_instance, id, frames_ID, tmp_box)
                 is_found = True
-        
+
         return is_found
         
     def update_instances(self, instance, id, frames_ID, tmp_box):
@@ -61,6 +61,8 @@ class InstanceAssociation:
         instance.g_pose_visuals[frames_ID] =  tmp_box.g_pose_visual
         instance.s_pose_ious[frames_ID] =  tmp_box.s_pose_iou
         instance.g_pose_ious[frames_ID] =  tmp_box.g_pose_iou
+        instance.is_added = True
+        instance.update_line_sets()
         
     def get_current_instances(self, current_frame, num_consecutive_frames=1):
         ## WE CAN USE QUEUE HERE
