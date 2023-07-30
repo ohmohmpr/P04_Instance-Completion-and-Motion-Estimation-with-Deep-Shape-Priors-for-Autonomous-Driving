@@ -71,6 +71,7 @@ class RegistrationVisualizer(StubVisualizer):
         self.InstanceAssociation = InstanceAssociation()
         self.frames_ID = -1
         self.visual_instances = []
+        self.point_bboxs = {}
 
         # Initialize visualizer
         self.vis = self.o3d.visualization.VisualizerWithKeyCallback()
@@ -255,7 +256,7 @@ class RegistrationVisualizer(StubVisualizer):
         # Visual in sensor frame
         self.remove_all()
         for id, current_instance in current_instances.items():
-            if current_instance.last_frame == self.frames_ID:
+            if current_instance.last_frame == self.frames_ID and current_instance.id == 512:
                 color_code = current_instance.color_code
                 
                 if self.global_view:
@@ -267,6 +268,33 @@ class RegistrationVisualizer(StubVisualizer):
                 line_set.paint_uniform_color(color_code)
                 self.vis.add_geometry(line_set, reset_bounding_box=False)
                 self.visual_instances.append(line_set)
+                
+                # Get point cloud inside Bounding box
+                # print("current_instance\n", current_instance)
+                
+                # Get g_pose_visuals
+                g_selected_bbox = current_instance.g_pose_visuals[current_instance.last_frame]
+                line_set, box3d = translate_boxes_to_open3d_instance(g_selected_bbox)
+                
+                # Get g_source_points
+                source_points = np.hstack((np.asarray(self.source.points), np.ones((np.asarray(self.source.points).shape[0], 1))))
+                g_source_points = (pose @ source_points.T).T
+                g_source_points = g_source_points[:, :3]
+                
+                # Create points
+                pcd = o3d.geometry.PointCloud()
+                # From numpy to Open3D
+                pcd.points = o3d.utility.Vector3dVector(g_source_points)
+
+                # Get index 
+                idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
+                
+                # PCL in Bbox
+                point_bbox = np.asarray(g_source_points)[idx_points, :]
+                self.point_bboxs[self.frames_ID] = point_bbox
+                # print("point_bbox", point_bbox)
+                
+        np.save('point_bboxs.npy', np.array(self.point_bboxs, dtype=object), allow_pickle=True)
         
         # Render trajectory, only if it make sense (global view)
         if self.render_trajectory and self.global_view:
