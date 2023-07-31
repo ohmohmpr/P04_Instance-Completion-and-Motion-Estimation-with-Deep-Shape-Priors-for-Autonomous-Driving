@@ -308,10 +308,10 @@ class RegistrationVisualizer(StubVisualizer):
                         mesh.compute_vertex_normals()
                         
                         if self.global_view:
-                            pose = g_pose_path[self.frames_ID]
+                            op_pose = g_pose_path[self.frames_ID]
                         else:
-                            pose = s_pose_path[self.frames_ID]
-                        mesh.transform(pose)
+                            op_pose = s_pose_path[self.frames_ID]
+                        mesh.transform(op_pose)
                         mesh.paint_uniform_color(color_code)
                         self.vis.add_geometry(mesh, reset_bounding_box=False)
                         self.meshs.append(mesh)
