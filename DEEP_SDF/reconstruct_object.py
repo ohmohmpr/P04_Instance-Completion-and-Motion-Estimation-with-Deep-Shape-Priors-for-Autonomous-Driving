@@ -23,7 +23,7 @@ import os
 from os.path import join, dirname, abspath
 from reconstruct.loss_utils import get_time
 from reconstruct.optimizer import Optimizer, MeshExtractor
-from reconstruct.utils import color_table, write_mesh_to_ply
+from reconstruct.utils import color_table, write_mesh_to_ply, convert_to_world_frame, convert_to_canonic_space
 import yaml
 
 @click.command()
@@ -71,8 +71,8 @@ def main(config):
             g_pose[frame_id] = obj.g_pose
             s_pose[frame_id] = obj.s_pose
             
-            print(g_pose)
-            print(s_pose)
+            # print(g_pose)
+            # print(s_pose)
 
             objects_recon[frame_id] = obj
             g_point = np.concatenate((g_point, det.PCD))
@@ -112,120 +112,16 @@ def main(config):
         mesh_o3d.paint_uniform_color(color_table[0])
 
         # Transform mesh from object to world coordinate
-        mesh_o3d.transform(obj.s_pose)
+        mesh_o3d.transform(obj.g_pose)
         vis.add_geometry(mesh_o3d)
         
         write_mesh_to_ply(mesh.vertices, mesh.faces, os.path.join(f"{save_dir}/{id}", "%d.ply" % frame_id))
-        
-        
-    # must be put after adding geometries
-    # set_view(vis, dist=20, theta=0.)
-    
-    idx = int(mesh.vertices.shape[0]/2)
-    print("mesh.vertices", idx)
     
     coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=10, origin=[0, 0, 0])
     vis.add_geometry(coordinate_frame)
     
     vis.run()
     vis.destroy_window()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def convert_to_canonic_space(pcd_g_space):
-    '''
-    canonical space and global frame have different origin frame
-    '''
-    x_angle = np.deg2rad(-90)
-    z_angle = np.deg2rad(90)
-
-    rot_x_world = np.array([
-        [1, 0, 0, 0],
-        [0, np.cos(x_angle), -np.sin(x_angle), 0],
-        [0, np.sin(x_angle),  np.cos(x_angle), 0],
-        [0, 0, 0, 1]
-    ])
-
-    rot_z_world = np.array([
-        [np.cos(z_angle), -np.sin(z_angle),0 ,0],
-        [np.sin(z_angle),  np.cos(z_angle),0 ,0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1]
-    ])
-
-
-    scale_pam = 1./2.1
-    scale = scale_pam * np.array(np.eye(3))
-        
-    rott = rot_x_world @ rot_z_world
-
-    scale = scale @ rott[:3, :3]
-
-
-    rott_temp = np.hstack((scale, rott[0:3, 3][np.newaxis].T))
-    rott = np.vstack((rott_temp, rott[3]))
-    
-    pcd_g_space = np.hstack((pcd_g_space, np.ones((pcd_g_space.shape[0], 1))))
-    
-    pcd_c_space = (rott @ pcd_g_space.T).T
-    return pcd_c_space[:, :3]
-
-
-def convert_to_world_frame(pcd_c_space):
-    '''
-    canonical space and global frame have different origin frame
-    '''
-    x_angle = np.deg2rad(-90)
-    z_angle = np.deg2rad(90)
-
-    rot_x_world = np.array([
-        [1, 0, 0, 0],
-        [0, np.cos(x_angle), -np.sin(x_angle), 0],
-        [0, np.sin(x_angle),  np.cos(x_angle), 0],
-        [0, 0, 0, 1]
-    ])
-
-    rot_z_world = np.array([
-        [np.cos(z_angle), -np.sin(z_angle),0 ,0],
-        [np.sin(z_angle),  np.cos(z_angle),0 ,0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1]
-    ])
-
-
-    scale_pam = 1./2.1
-    scale = scale_pam * np.array(np.eye(3))
-        
-    rott = rot_x_world @ rot_z_world
-
-    scale = scale @ rott[:3, :3]
-
-
-    rott_temp = np.hstack((scale, rott[0:3, 3][np.newaxis].T))
-    rott = np.linalg.inv(np.vstack((rott_temp, rott[3])))
-    
-    
-    pcd_c_space = np.hstack((pcd_c_space, np.ones((pcd_c_space.shape[0], 1))))
-    
-    pcd_g_space = (rott @ pcd_c_space.T).T
-    return pcd_g_space[:, :3], rott
 
 if __name__ == "__main__":
     main()
