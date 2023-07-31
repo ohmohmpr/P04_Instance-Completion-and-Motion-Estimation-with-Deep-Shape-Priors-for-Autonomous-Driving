@@ -23,7 +23,7 @@ import os
 from os.path import join, dirname, abspath
 from reconstruct.loss_utils import get_time
 from reconstruct.optimizer import Optimizer, MeshExtractor
-from reconstruct.utils import color_table, set_view, write_mesh_to_ply
+from reconstruct.utils import color_table, write_mesh_to_ply
 import yaml
 
 @click.command()

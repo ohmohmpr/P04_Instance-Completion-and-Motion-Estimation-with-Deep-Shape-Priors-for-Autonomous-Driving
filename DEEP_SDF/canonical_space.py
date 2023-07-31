@@ -15,158 +15,71 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-import os
+import click
+from deep_sdf.deep_sdf.workspace import config_decoder
 import numpy as np
 import open3d as o3d
-import argparse
-from reconstruct.utils import color_table, set_view, get_configs, get_decoder
+import os
+from os.path import join, dirname, abspath
+from reconstruct.utils import color_table, convert_to_world_frame, convert_to_canonic_space
 from reconstruct.loss_utils import get_time
 from reconstruct.optimizer import Optimizer, MeshExtractor
-import numpy as np
+import yaml
 
-import plyfile
-
-
-def convert_to_canonic_space(pcd_g_pose):
-    '''
-    canonical space and global frame have different origin frame
-    '''
-    x_angle = np.deg2rad(-90)
-    z_angle = np.deg2rad(90)
-
-    rot_x_world = np.array([
-        [1, 0, 0, 0],
-        [0, np.cos(x_angle), -np.sin(x_angle), 0],
-        [0, np.sin(x_angle),  np.cos(x_angle), 0],
-        [0, 0, 0, 1]
-    ])
-
-    rot_z_world = np.array([
-        [np.cos(z_angle), -np.sin(z_angle),0 ,0],
-        [np.sin(z_angle),  np.cos(z_angle),0 ,0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1]
-    ])
-
-
-    scale_pam = 1./2.1
-    scale = scale_pam * np.array(np.eye(3))
-        
-    rott = rot_x_world @ rot_z_world
-
-    scale = scale @ rott[:3, :3]
-
-
-    rott_temp = np.hstack((scale, rott[0:3, 3][np.newaxis].T))
-    rott = np.vstack((rott_temp, rott[3]))
-    
-    pcd_g_pose = np.hstack((pcd_g_pose, np.ones((pcd_g_pose.shape[0], 1))))
-    
-    pcd_c_pose = (rott @ pcd_g_pose.T).T
-    return pcd_c_pose[:, :3]
-    
-
-def convert_to_world_frame(pcd_c_pose):
-    '''
-    canonical space and global frame have different origin frame
-    '''
-    x_angle = np.deg2rad(-90)
-    z_angle = np.deg2rad(90)
-
-    rot_x_world = np.array([
-        [1, 0, 0, 0],
-        [0, np.cos(x_angle), -np.sin(x_angle), 0],
-        [0, np.sin(x_angle),  np.cos(x_angle), 0],
-        [0, 0, 0, 1]
-    ])
-
-    rot_z_world = np.array([
-        [np.cos(z_angle), -np.sin(z_angle),0 ,0],
-        [np.sin(z_angle),  np.cos(z_angle),0 ,0],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1]
-    ])
-
-
-    scale_pam = 1./2.1
-    scale = scale_pam * np.array(np.eye(3))
-        
-    rott = rot_x_world @ rot_z_world
-
-    scale = scale @ rott[:3, :3]
-
-
-    rott_temp = np.hstack((scale, rott[0:3, 3][np.newaxis].T))
-    rott = np.linalg.inv(np.vstack((rott_temp, rott[3])))
-    
-    
-    pcd_c_pose = np.hstack((pcd_c_pose, np.ones((pcd_c_pose.shape[0], 1))))
-    
-    pcd_g_pose = (rott @ pcd_c_pose.T).T
-    return pcd_g_pose[:, :3], rott
 
     
-def config_parser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, required=True, help='path to config file')
-    return parser
-
-
-def write_mesh_to_ply(v, f, ply_filename_out):
-    # try writing to the ply file
-
-    num_verts = v.shape[0]
-    num_faces = f.shape[0]
-
-    verts_tuple = np.zeros((num_verts,), dtype=[("x", "f4"), ("y", "f4"), ("z", "f4")])
-
-    for i in range(0, num_verts):
-        verts_tuple[i] = tuple(v[i, :])
-
-    faces_building = []
-    for i in range(0, num_faces):
-        faces_building.append(((f[i, :].tolist(),)))
-    faces_tuple = np.array(faces_building, dtype=[("vertex_indices", "i4", (3,))])
-
-    el_verts = plyfile.PlyElement.describe(verts_tuple, "vertex")
-    el_faces = plyfile.PlyElement.describe(faces_tuple, "face")
-
-    ply_data = plyfile.PlyData([el_verts, el_faces])
-    ply_data.write(ply_filename_out)
+@click.command()
+@click.option('--config',
+              '-c',
+              type=str,
+              help='path to the config file (.yaml)',
+              default=join(dirname(abspath(__file__)),'configs/config.yaml'))
 
 
 # 2D and 3D detection and data association
-if __name__ == "__main__":
-    parser = config_parser()
-    args = parser.parse_args()
+def main(config):
+    cfg = yaml.safe_load(open(config))
+    DeepSDF_DIR = cfg['deepsdf_dir']
+    decoder = config_decoder(DeepSDF_DIR)
 
-    configs = get_configs(args.config)
-    decoder = get_decoder(configs)
-    optimizer = Optimizer(decoder, configs)
+    optimizer = Optimizer(decoder, cfg)
 
     # start reconstruction
     objects_recon = []
     start = get_time()
-        
-    canonical_points = np.load('canonical_points.npy', allow_pickle='TRUE').item()
-    cars = len(canonical_points)
-    all_points = np.array([[0, 0, 0]])
-    for i in range(cars):
-        try:
-            all_points = np.concatenate((all_points, canonical_points[i]))
-        except KeyError:
-            pass
-    all_points = all_points[1:]
     
-    c_all_points = convert_to_canonic_space(all_points)
-    g_all_points, rot_g_world =  convert_to_world_frame(c_all_points)
+    id = 512
+    detections = np.load(f'results/instance_association/PointCloud_KITTI21_Obj_ID_{id}.npy', allow_pickle='TRUE').item()
+    
+    # start reconstruction
+    objects_recon = {}
+    
+    # Ugly initialization
+    point_w_frame = np.array([[0, 0, 0]])
+    point_c_frame = np.array([[0, 0, 0]])
+    
+    _, rott = convert_to_world_frame(point_w_frame)
+    
+    start = get_time()
         
-    obj = optimizer.reconstruct_object(np.eye(4, dtype="float32"), c_all_points)
-    objects_recon = [obj]
+    for frame_id, det in detections.items():
+        point_w_frame = np.concatenate((point_w_frame, det.PCD))
+        
+        c_point = convert_to_canonic_space(det.canonical_point)
+        point_c_frame = np.concatenate((point_c_frame, c_point))
 
+    # Ugly initialization
+    point_w_frame = point_w_frame[1:]
+    point_c_frame = point_c_frame[1:]
+
+    point_s_w_frame, rot_g_world =  convert_to_world_frame(point_c_frame)
+        
+    # Optimization
+    obj = optimizer.reconstruct_object(np.eye(4, dtype="float32"), point_c_frame)
+    objects_recon[frame_id] = obj
 
     end = get_time()
-    # print("Reconstructed %d objects in the scene, time elapsed: %f seconds" % (len(objects_recon), end - start))
+    print("Reconstructed %d objects in the scene, time elapsed: %f seconds" % (len(objects_recon), end - start))
 
     # Visualize results
     vis = o3d.visualization.Visualizer()
@@ -175,18 +88,18 @@ if __name__ == "__main__":
     
     # Add SOURCE LiDAR point cloud
     scene_pcd = o3d.geometry.PointCloud()
-    scene_pcd.points = o3d.utility.Vector3dVector(g_all_points)
-    green_color = np.full((g_all_points.shape[0], 3), color_table[1]) # Green COLOR
+    scene_pcd.points = o3d.utility.Vector3dVector(point_s_w_frame)
+    green_color = np.full((point_s_w_frame.shape[0], 3), color_table[1]) # Green COLOR
     scene_pcd.colors = o3d.utility.Vector3dVector(green_color)
     vis.add_geometry(scene_pcd)
     
     # Create mesh extractor
     mesh_extractor = MeshExtractor(decoder, voxels_dim=64)
-    for i, obj in enumerate(objects_recon):
-        mesh = mesh_extractor.extract_mesh_from_code(obj.code)
 
+    for frame_id, obj in objects_recon.items():
+        mesh = mesh_extractor.extract_mesh_from_code(obj.code)
         mesh_o3d = o3d.geometry.TriangleMesh(o3d.utility.Vector3dVector(mesh.vertices), o3d.utility.Vector3iVector(mesh.faces))
-        # red_pcd = np.save("red_pcd.npy", mesh.vertices)
+        mesh_o3d.compute_vertex_normals()
 
         # Add OUTPUT LiDAR point cloud
         obj_pcd = o3d.geometry.PointCloud()
@@ -195,8 +108,6 @@ if __name__ == "__main__":
         obj_pcd.colors = o3d.utility.Vector3dVector(red_color)
         vis.add_geometry(obj_pcd)
         
-
-        mesh_o3d.compute_vertex_normals()
         
         # Transform mesh from object to world coordinate
         # mesh_o3d.transform(obj.t_cam_obj)
@@ -210,13 +121,15 @@ if __name__ == "__main__":
 
 
     coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1, origin=[0, 0, 0])
-    # coordinate_frame.transform(rott)
-    # scene_pcd.transform(rott)
     vis.add_geometry(coordinate_frame)
     
     vis.run()
     vis.destroy_window()
 
+# python3 DEEP_SDF/canonical_space.py
+'''
+SHOW POINTS IN CANONICAL SPACE.
+'''
 
-
-# python reconstruct_frame.py --config configs/config_kitti.json
+if __name__ == "__main__":
+    main()

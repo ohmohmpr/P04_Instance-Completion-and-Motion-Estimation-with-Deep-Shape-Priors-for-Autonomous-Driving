@@ -161,3 +161,82 @@ def write_mesh_to_ply(v, f, ply_filename_out):
 
     ply_data = plyfile.PlyData([el_verts, el_faces])
     ply_data.write(ply_filename_out)
+
+
+def convert_to_canonic_space(pcd_g_pose):
+    '''
+    canonical space and global frame have different origin frame
+    '''
+    x_angle = np.deg2rad(-90)
+    z_angle = np.deg2rad(90)
+
+    rot_x_world = np.array([
+        [1, 0, 0, 0],
+        [0, np.cos(x_angle), -np.sin(x_angle), 0],
+        [0, np.sin(x_angle),  np.cos(x_angle), 0],
+        [0, 0, 0, 1]
+    ])
+
+    rot_z_world = np.array([
+        [np.cos(z_angle), -np.sin(z_angle),0 ,0],
+        [np.sin(z_angle),  np.cos(z_angle),0 ,0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]
+    ])
+
+
+    scale_pam = 1./2.1
+    scale = scale_pam * np.array(np.eye(3))
+        
+    rott = rot_x_world @ rot_z_world
+
+    scale = scale @ rott[:3, :3]
+
+
+    rott_temp = np.hstack((scale, rott[0:3, 3][np.newaxis].T))
+    rott = np.vstack((rott_temp, rott[3]))
+    
+    pcd_g_pose = np.hstack((pcd_g_pose, np.ones((pcd_g_pose.shape[0], 1))))
+    
+    pcd_c_pose = (rott @ pcd_g_pose.T).T
+    return pcd_c_pose[:, :3]
+    
+
+def convert_to_world_frame(pcd_c_pose):
+    '''
+    canonical space and global frame have different origin frame
+    '''
+    x_angle = np.deg2rad(-90)
+    z_angle = np.deg2rad(90)
+
+    rot_x_world = np.array([
+        [1, 0, 0, 0],
+        [0, np.cos(x_angle), -np.sin(x_angle), 0],
+        [0, np.sin(x_angle),  np.cos(x_angle), 0],
+        [0, 0, 0, 1]
+    ])
+
+    rot_z_world = np.array([
+        [np.cos(z_angle), -np.sin(z_angle),0 ,0],
+        [np.sin(z_angle),  np.cos(z_angle),0 ,0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]
+    ])
+
+
+    scale_pam = 1./2.1
+    scale = scale_pam * np.array(np.eye(3))
+        
+    rott = rot_x_world @ rot_z_world
+
+    scale = scale @ rott[:3, :3]
+
+
+    rott_temp = np.hstack((scale, rott[0:3, 3][np.newaxis].T))
+    rott = np.linalg.inv(np.vstack((rott_temp, rott[3])))
+    
+    
+    pcd_c_pose = np.hstack((pcd_c_pose, np.ones((pcd_c_pose.shape[0], 1))))
+    
+    pcd_g_pose = (rott @ pcd_c_pose.T).T
+    return pcd_g_pose[:, :3], rott
