@@ -30,7 +30,7 @@ from typing import Callable, List
 import numpy as np
 import open3d as o3d
 from kiss_icp.tools.utils import translate_boxes_to_open3d_instance, InstanceAssociation
-from kiss_icp.tools.utils_class import BoundingBox3D
+from kiss_icp.tools.utils_class import BoundingBox3D, OutputPCD
 
 YELLOW = np.array([1, 0.706, 0])
 RED = np.array([128, 0, 0]) / 255.0
@@ -38,6 +38,9 @@ BLACK = np.array([0, 0, 0]) / 255.0
 BLUE = np.array([0.4, 0.5, 0.9])
 SPHERE_SIZE = 0.20
 
+save_mesh_dir = "results/deep_sdf/mesh/512"
+g_pose_path = np.load("results/deep_sdf/pose/g_pose_512.npy", allow_pickle='TRUE').item()
+s_pose_path = np.load("results/deep_sdf/pose/s_pose_512.npy", allow_pickle='TRUE').item()
 
 class StubVisualizer(ABC):
     def __init__(self):
@@ -71,7 +74,8 @@ class RegistrationVisualizer(StubVisualizer):
         self.InstanceAssociation = InstanceAssociation()
         self.frames_ID = -1
         self.visual_instances = []
-        self.point_bboxs = {}
+        self.output_pcd_s = {}
+        self.meshs = []
 
         # Initialize visualizer
         self.vis = self.o3d.visualization.VisualizerWithKeyCallback()
@@ -251,12 +255,14 @@ class RegistrationVisualizer(StubVisualizer):
 
         self.InstanceAssociation.update(ego_car_pose, boundingBoxes3D, self.frames_ID)
         current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 3)
-        # print("current_instances\n", current_instances)
         
         # Visual in sensor frame
         self.remove_all()
+        # self.vis.remove_geometry(self.mesh)
         for id, current_instance in current_instances.items():
-            if current_instance.last_frame == self.frames_ID and current_instance.id == 512:
+            if current_instance.last_frame == self.frames_ID:
+                # print("current_instance\n", current_instance)
+                ##################### VISUALIZAION #####################
                 color_code = current_instance.color_code
                 
                 if self.global_view:
@@ -269,32 +275,55 @@ class RegistrationVisualizer(StubVisualizer):
                 self.vis.add_geometry(line_set, reset_bounding_box=False)
                 self.visual_instances.append(line_set)
                 
-                # Get point cloud inside Bounding box
-                # print("current_instance\n", current_instance)
+                ##################### VISUALIZAION #####################
                 
+                ##################### EXTRACT POINTS #####################
                 # Get g_pose_visuals
-                g_selected_bbox = current_instance.g_pose_visuals[current_instance.last_frame]
-                line_set, box3d = translate_boxes_to_open3d_instance(g_selected_bbox)
+                # g_selected_bbox = current_instance.g_pose_visuals[current_instance.last_frame]
+                # line_set, box3d = translate_boxes_to_open3d_instance(g_selected_bbox)
                 
-                # Get g_source_points
-                source_points = np.hstack((np.asarray(self.source.points), np.ones((np.asarray(self.source.points).shape[0], 1))))
-                g_source_points = (pose @ source_points.T).T
-                g_source_points = g_source_points[:, :3]
+                # # Get g_source_points
+                # source_points = np.hstack((np.asarray(self.source.points), np.ones((np.asarray(self.source.points).shape[0], 1))))
+                # g_source_points = (pose @ source_points.T).T
+                # g_source_points = g_source_points[:, :3]
                 
-                # Create points
-                pcd = o3d.geometry.PointCloud()
-                # From numpy to Open3D
-                pcd.points = o3d.utility.Vector3dVector(g_source_points)
+                # # Create points
+                # pcd = o3d.geometry.PointCloud()
+                # # From numpy to Open3D
+                # pcd.points = o3d.utility.Vector3dVector(g_source_points)
 
-                # Get index 
-                idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
+                # # Get index 
+                # idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
                 
-                # PCL in Bbox
-                point_bbox = np.asarray(g_source_points)[idx_points, :]
-                self.point_bboxs[self.frames_ID] = point_bbox
+                # # PCL in Bbox
+                # point_bbox = np.asarray(g_source_points)[idx_points, :]
+                # self.output_pcd_s[self.frames_ID] = OutputPCD(point_bbox, g_selected_bbox, current_instance.s_pose_visuals[current_instance.last_frame])
                 # print("point_bbox", point_bbox)
+                ##################### EXTRACT POINTS #####################
                 
-        np.save('point_bboxs.npy', np.array(self.point_bboxs, dtype=object), allow_pickle=True)
+                if current_instance.id == 512:
+                ##################### ADD MESH #####################
+                    try:
+                        mesh = o3d.io.read_triangle_mesh(os.path.join(save_mesh_dir, "%d.ply" % self.frames_ID))
+                        mesh.compute_vertex_normals()
+                        
+                        if self.global_view:
+                            pose = g_pose_path[self.frames_ID]
+                        else:
+                            pose = s_pose_path[self.frames_ID]
+                        mesh.transform(pose)
+                        mesh.paint_uniform_color(color_code)
+                        self.vis.add_geometry(mesh, reset_bounding_box=False)
+                        self.meshs.append(mesh)
+                    except:
+                        pass
+                ##################### ADD MESH #####################
+                
+                
+        ##################### EXTRACT POINTS #####################
+        # np.save('output_pcd_s.npy', np.array(self.output_pcd_s, dtype=object), allow_pickle=True)
+        ##################### EXTRACT POINTS #####################
+        
         
         # Render trajectory, only if it make sense (global view)
         if self.render_trajectory and self.global_view:
@@ -309,7 +338,12 @@ class RegistrationVisualizer(StubVisualizer):
 
     def remove_all(self):
         length = len(self.visual_instances)
+        length_mesh = len(self.meshs)
         
         for i in range(length):
             self.vis.remove_geometry(self.visual_instances[0], reset_bounding_box=False)
             self.visual_instances.pop(0)
+        
+        for i in range(length_mesh):
+            self.vis.remove_geometry(self.meshs[0], reset_bounding_box=False)
+            self.meshs.pop(0)

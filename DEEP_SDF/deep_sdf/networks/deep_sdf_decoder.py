@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 
+# DeepSDF's decoder
 
 class Decoder(nn.Module):
     def __init__(
@@ -20,7 +21,6 @@ class Decoder(nn.Module):
         use_tanh=False,
         latent_dropout=False,
     ):
-        # parent initializer
         super(Decoder, self).__init__()
 
         def make_sequence():
@@ -35,22 +35,22 @@ class Decoder(nn.Module):
         if self.latent_dropout:
             self.lat_dp = nn.Dropout(0.2)
 
-        self.xyz_in_all = xyz_in_all
+        self.xyz_in_all = xyz_in_all # means for each layer, we concat the xyz
         self.weight_norm = weight_norm
 
         for layer in range(0, self.num_layers - 1):
-            if layer + 1 in latent_in:
+            if layer + 1 in latent_in: # means the latent is again concated with the current output at this layer
                 out_dim = dims[layer + 1] - dims[0]
             else:
                 out_dim = dims[layer + 1]
                 if self.xyz_in_all and layer != self.num_layers - 2:
                     out_dim -= 3
 
-            if weight_norm and layer in self.norm_layers:
+            if weight_norm and layer in self.norm_layers: # true
                 setattr(
                     self,
                     "lin" + str(layer),
-                    nn.utils.weight_norm(nn.Linear(dims[layer], out_dim)),
+                    nn.utils.weight_norm(nn.Linear(dims[layer], out_dim)), # linear layer
                 )
             else:
                 setattr(self, "lin" + str(layer), nn.Linear(dims[layer], out_dim))
@@ -62,7 +62,7 @@ class Decoder(nn.Module):
             ):
                 setattr(self, "bn" + str(layer), nn.LayerNorm(out_dim))
 
-        self.use_tanh = use_tanh
+        self.use_tanh = use_tanh # false
         if use_tanh:
             self.tanh = nn.Tanh()
         self.relu = nn.ReLU()
@@ -71,12 +71,12 @@ class Decoder(nn.Module):
         self.dropout = dropout
         self.th = nn.Tanh()
 
-    # input: N x (L+3) extend to multi-dim
+    # input: N x (L+3)
     def forward(self, input):
-        xyz = input[..., -3:]
+        xyz = input[:, -3:]
 
-        if input.shape[-1] > 3 and self.latent_dropout:
-            latent_vecs = input[..., :-3]
+        if input.shape[1] > 3 and self.latent_dropout:
+            latent_vecs = input[:, :-3]
             latent_vecs = F.dropout(latent_vecs, p=0.2, training=self.training)
             x = torch.cat([latent_vecs, xyz], 1)
         else:
@@ -85,23 +85,23 @@ class Decoder(nn.Module):
         for layer in range(0, self.num_layers - 1):
             lin = getattr(self, "lin" + str(layer))
             if layer in self.latent_in:
-                x = torch.cat([x, input], dim=-1)
-            elif layer != 0 and self.xyz_in_all:
-                x = torch.cat([x, xyz], dim=-1)
-            x = lin(x)
+                x = torch.cat([x, input], -1)
+            elif layer != 0 and self.xyz_in_all: # false
+                x = torch.cat([x, xyz], 1)
+            x = lin(x) # linear
             # last layer Tanh
-            if layer == self.num_layers - 2 and self.use_tanh:
-                x = self.tanh(x)
+            if layer == self.num_layers - 2 and self.use_tanh: # false
+                x = self.tanh(x) # but last layer we use tanh non-linear activation
             if layer < self.num_layers - 2:
                 if (
                     self.norm_layers is not None
                     and layer in self.norm_layers
                     and not self.weight_norm
                 ):
-                    bn = getattr(self, "bn" + str(layer))
+                    bn = getattr(self, "bn" + str(layer)) # the other layrt , apply relu after batch normalization
                     x = bn(x)
                 x = self.relu(x)
-                if self.dropout is not None and layer in self.dropout:
+                if self.dropout is not None and layer in self.dropout: # dropout on
                     x = F.dropout(x, p=self.dropout_prob, training=self.training)
 
         if hasattr(self, "th"):

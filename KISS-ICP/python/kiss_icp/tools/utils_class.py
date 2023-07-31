@@ -63,3 +63,40 @@ class Instance:
     s_pose_ious: Dict[int, BBox3D]
     g_pose_ious: Dict[int, BBox3D]
         
+        
+@dataclass
+class OutputPCD:
+    '''
+    Get points inside bounding boxes.
+    '''
+    PCD: np.ndarray
+    g_pose_visuals: BoundingBox3D
+    s_pose_visuals: BoundingBox3D
+    g_pose: np.ndarray = field(init=False)
+    s_pose: np.ndarray = field(init=False)
+    canonical_point: np.ndarray = field(init=False)
+    
+    def __post_init__(self):
+        self.get_g_pose()
+        self.get_s_pose()
+        self.get_canonical_points()
+        
+        
+    def get_g_pose(self):
+        pose = np.hstack((self.g_pose_visuals.rot, np.array([[self.g_pose_visuals.x], [self.g_pose_visuals.y], [self.g_pose_visuals.z]])))
+        pose = np.vstack((pose, np.array([0, 0, 0, 1])))
+        self.g_pose = pose
+        
+    def get_s_pose(self):
+        pose = np.hstack((self.s_pose_visuals.rot, np.array([[self.s_pose_visuals.x], [self.s_pose_visuals.y], [self.s_pose_visuals.z]])))
+        pose = np.vstack((pose, np.array([0, 0, 0, 1])))
+        self.s_pose = pose
+    
+    def get_canonical_points(self):
+        inv_pose = np.linalg.inv(self.g_pose)
+        
+        pcd = np.hstack((self.PCD, np.ones((self.PCD.shape[0] , 1))))
+
+        pcd = (inv_pose @ pcd.T).T
+        self.canonical_point = pcd[:, :3]
+        
