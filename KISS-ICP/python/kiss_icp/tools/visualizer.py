@@ -258,12 +258,12 @@ class RegistrationVisualizer(StubVisualizer):
         
         # Visual in sensor frame
         self.remove_all()
-        # self.vis.remove_geometry(self.mesh)
+
         instance_id = 209
         for id, current_instance in current_instances.items():
-            if current_instance.last_frame == self.frames_ID and current_instance.id == instance_id:
+            if current_instance.last_frame == self.frames_ID :
             # if current_instance.last_frame == self.frames_ID :
-                print("###############################################################\n")
+                # print("###############################################################\n")
                 # print("current_instance\n", current_instance)
                 ##################### VISUALIZAION #####################
                 color_code = current_instance.color_code
@@ -305,20 +305,21 @@ class RegistrationVisualizer(StubVisualizer):
                 ##################### EXTRACT POINTS #####################
                 
                 ##################### ADD MESH #####################
-                try:
-                    mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}', "%d.ply" % self.frames_ID))
-                    mesh.compute_vertex_normals()
-                    
-                    if self.global_view:
-                        op_pose = g_pose_path[self.frames_ID]
-                    else:
-                        op_pose = s_pose_path[self.frames_ID]
-                    mesh.transform(op_pose)
-                    mesh.paint_uniform_color(color_code)
-                    self.vis.add_geometry(mesh, reset_bounding_box=False)
-                    self.meshs.append(mesh)
-                except:
-                    pass
+                if current_instance.id == instance_id:
+                    try:
+                        mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}', "%d.ply" % self.frames_ID))
+                        mesh.compute_vertex_normals()
+                        
+                        if self.global_view:
+                            op_pose = g_pose_path[self.frames_ID]
+                        else:
+                            op_pose = s_pose_path[self.frames_ID]
+                        mesh.transform(op_pose)
+                        mesh.paint_uniform_color(color_code)
+                        self.vis.add_geometry(mesh, reset_bounding_box=False)
+                        self.meshs.append(mesh)
+                    except:
+                        pass
                 ##################### ADD MESH #####################
                 
                 

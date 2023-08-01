@@ -48,7 +48,7 @@ def main(config):
     objects_recon = []
     start = get_time()
     
-    id = 512
+    id = 209
     detections = np.load(f'results/instance_association/PointCloud_KITTI21_Obj_ID_{id}.npy', allow_pickle='TRUE').item()
     
     # start reconstruction
