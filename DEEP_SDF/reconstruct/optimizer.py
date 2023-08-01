@@ -113,6 +113,7 @@ class Optimizer(object):
         end = get_time()
         print("Reconstruction takes %f seconds" % (end - start))
         t_cam_obj = torch.inverse(t_obj_cam)
+        print("BEFORE t_cam_obj", t_cam_obj)
         return ForceKeyErrorDict(t_cam_obj=t_cam_obj.numpy(),
                                  code=latent_vector.cpu().numpy(),
                                  is_good=True, loss=loss)

@@ -38,9 +38,9 @@ BLACK = np.array([0, 0, 0]) / 255.0
 BLUE = np.array([0.4, 0.5, 0.9])
 SPHERE_SIZE = 0.20
 
-save_mesh_dir = "results/deep_sdf/mesh/512"
-g_pose_path = np.load("results/deep_sdf/pose/g_pose_512.npy", allow_pickle='TRUE').item()
-s_pose_path = np.load("results/deep_sdf/pose/s_pose_512.npy", allow_pickle='TRUE').item()
+save_mesh_dir = "results/deep_sdf/mesh"
+g_pose_path = np.load("results/deep_sdf/pose/g_pose_209.npy", allow_pickle='TRUE').item()
+s_pose_path = np.load("results/deep_sdf/pose/s_pose_209.npy", allow_pickle='TRUE').item()
 
 class StubVisualizer(ABC):
     def __init__(self):
@@ -259,8 +259,11 @@ class RegistrationVisualizer(StubVisualizer):
         # Visual in sensor frame
         self.remove_all()
         # self.vis.remove_geometry(self.mesh)
+        instance_id = 209
         for id, current_instance in current_instances.items():
-            if current_instance.last_frame == self.frames_ID:
+            if current_instance.last_frame == self.frames_ID and current_instance.id == instance_id:
+            # if current_instance.last_frame == self.frames_ID :
+                print("###############################################################\n")
                 # print("current_instance\n", current_instance)
                 ##################### VISUALIZAION #####################
                 color_code = current_instance.color_code
@@ -278,7 +281,7 @@ class RegistrationVisualizer(StubVisualizer):
                 ##################### VISUALIZAION #####################
                 
                 ##################### EXTRACT POINTS #####################
-                # Get g_pose_visuals
+                # # Get g_pose_visuals
                 # g_selected_bbox = current_instance.g_pose_visuals[current_instance.last_frame]
                 # line_set, box3d = translate_boxes_to_open3d_instance(g_selected_bbox)
                 
@@ -301,28 +304,27 @@ class RegistrationVisualizer(StubVisualizer):
                 # print("point_bbox", point_bbox)
                 ##################### EXTRACT POINTS #####################
                 
-                if current_instance.id == 512:
                 ##################### ADD MESH #####################
-                    try:
-                        mesh = o3d.io.read_triangle_mesh(os.path.join(save_mesh_dir, "%d.ply" % self.frames_ID))
-                        mesh.compute_vertex_normals()
-                        
-                        if self.global_view:
-                            op_pose = g_pose_path[self.frames_ID]
-                        else:
-                            op_pose = s_pose_path[self.frames_ID]
-                        mesh.transform(op_pose)
-                        mesh.paint_uniform_color(color_code)
-                        self.vis.add_geometry(mesh, reset_bounding_box=False)
-                        self.meshs.append(mesh)
-                    except:
-                        pass
+                try:
+                    mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}', "%d.ply" % self.frames_ID))
+                    mesh.compute_vertex_normals()
+                    
+                    if self.global_view:
+                        op_pose = g_pose_path[self.frames_ID]
+                    else:
+                        op_pose = s_pose_path[self.frames_ID]
+                    mesh.transform(op_pose)
+                    mesh.paint_uniform_color(color_code)
+                    self.vis.add_geometry(mesh, reset_bounding_box=False)
+                    self.meshs.append(mesh)
+                except:
+                    pass
                 ##################### ADD MESH #####################
                 
                 
-        ##################### EXTRACT POINTS #####################
-        # np.save('output_pcd_s.npy', np.array(self.output_pcd_s, dtype=object), allow_pickle=True)
-        ##################### EXTRACT POINTS #####################
+                ##################### EXTRACT POINTS #####################
+                # np.save(f'results/instance_association/PointCloud_KITTI21_Obj_ID_{instance_id}.npy', np.array(self.output_pcd_s, dtype=object), allow_pickle=True)
+                ##################### EXTRACT POINTS #####################
         
         
         # Render trajectory, only if it make sense (global view)

@@ -42,7 +42,7 @@ def main(config):
     
     optimizer = Optimizer(decoder, cfg)
     
-    id = 209
+    id = 512
     detections = np.load(f'results/instance_association/PointCloud_KITTI21_Obj_ID_{id}.npy', allow_pickle='TRUE').item()
 
     # start reconstruction
