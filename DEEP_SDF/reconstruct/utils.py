@@ -185,7 +185,7 @@ def convert_to_canonic_space(pcd_g_pose):
     ])
 
 
-    scale_pam = 1./2.1
+    scale_pam = 1./2.4
     scale = scale_pam * np.array(np.eye(3))
         
     rott = rot_x_world @ rot_z_world
@@ -224,7 +224,7 @@ def convert_to_world_frame(pcd_c_pose):
     ])
 
 
-    scale_pam = 1./2.1
+    scale_pam = 1./2.4
     scale = scale_pam * np.array(np.eye(3))
         
     rott = rot_x_world @ rot_z_world
