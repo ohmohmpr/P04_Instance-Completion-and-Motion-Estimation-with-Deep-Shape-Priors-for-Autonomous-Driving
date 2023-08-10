@@ -42,7 +42,7 @@ def main(config):
     
     optimizer = Optimizer(decoder, cfg)
     
-    id = 512
+    id = 209
     detections = np.load(f'results/instance_association/PointCloud_KITTI21_Obj_ID_{id}.npy', allow_pickle='TRUE').item()
 
     # start reconstruction
@@ -61,53 +61,60 @@ def main(config):
 
     g_pose = {}
     s_pose = {}
-    
+
     is_first_f = False
-    len_accu_points = 0
+    tmp_pts_canonical_space = []
     for frame_id, det in detections.items():
-        if det.canonical_point.shape[0] > 200:
-        # if det.canonical_point.shape[0] > 200 or len_accu_points > 200:
-            
+
+        if det.pts_obj_global.shape[0] > 200:
+
             if is_first_f:
-                accumulated_canonical_point = np.concatenate((prev_point_for_optim, det.canonical_point))
-                c_all_points = convert_to_canonic_space(accumulated_canonical_point)
-                len_accu_points = accumulated_canonical_point.shape[0]
+                pts_canonical_space = convert_to_canonic_space(det.pts_obj_global)
                 
-                tmp_canonical_point = np.hstack((accumulated_canonical_point, np.ones((accumulated_canonical_point.shape[0], 1))))
-                g_space_point = (det.g_pose @ tmp_canonical_point.T).T
-                acc_g_point = np.concatenate((g_point_0, g_space_point[:, :3]))
-                
+                # Transform with optimization transformation
+                tmp = tmp_pts_canonical_space[0]
+                for a in tmp_pts_canonical_space:
+                    tmp = np.concatenate((tmp, a))
+
+                accumulated_pts_canonical_space = np.concatenate((tmp, pts_canonical_space))
             else: 
-                c_all_points = convert_to_canonic_space(det.canonical_point)
+                pts_canonical_space = convert_to_canonic_space(det.pts_obj_global)
+                accumulated_pts_canonical_space = pts_canonical_space
                 is_first_f = True
                 
-                tmp_canonical_point = np.hstack((det.canonical_point, np.ones((det.canonical_point.shape[0], 1))))
-                g_space_point = (det.g_pose @ tmp_canonical_point.T).T
-                acc_g_point = np.concatenate((g_point_0, g_space_point[:, :3]))
-                
-            obj = optimizer.reconstruct_object(np.eye(4) , c_all_points)
+            obj = optimizer.reconstruct_object(np.eye(4) , accumulated_pts_canonical_space)
             
-            prev_point_for_optim = obj.inv_g_space_point
+            if len(tmp_pts_canonical_space) > 3:
+                tmp_pts_canonical_space.pop(0)
+                
+            # Optimized Pose
+            pts_canonical_space_homo = np.hstack((pts_canonical_space, np.ones((pts_canonical_space.shape[0], 1))))
+            pts_canonical_space_homo_op = (obj.t_cam_obj @ pts_canonical_space_homo.T).T
+            pts_canonical_space = pts_canonical_space_homo_op[:, :3]
+            tmp_pts_canonical_space.append(pts_canonical_space)
+            
             
             obj.g_pose = det.g_pose @ rott @ obj.t_cam_obj
             obj.s_pose = det.s_pose @ rott @ obj.t_cam_obj
             
             g_pose[frame_id] = obj.g_pose
             s_pose[frame_id] = obj.s_pose
-            
-            # print(g_pose)
-            # print(s_pose)
 
             objects_recon[frame_id] = obj
             
+            
+            accumulated_pts_g_space, _ = convert_to_world_frame(accumulated_pts_canonical_space)
+            
+            accumulated_pts_g_space_homo = np.hstack((accumulated_pts_g_space, np.ones((accumulated_pts_g_space.shape[0], 1))))
+            accumulated_pts_g_space_homo = (det.g_pose @ accumulated_pts_g_space_homo.T).T
+            accumulated_pts_g_space = accumulated_pts_g_space_homo[:, :3]
 
-            g_point[frame_id] = acc_g_point
+            g_point_0 = np.concatenate((g_point_0, accumulated_pts_g_space))
     
     np.save(f'results/deep_sdf/pose/g_pose_{id}_accumulated.npy', np.array(g_pose, dtype=object), allow_pickle=True)
     np.save(f'results/deep_sdf/pose/s_pose_{id}_accumulated.npy', np.array(s_pose, dtype=object), allow_pickle=True)
     
-    c_all_points = c_all_points[:, :3]
-    c_all_points, rott = convert_to_world_frame(c_all_points)
+
     g_point_0 = g_point_0[1:]
     
     
@@ -120,13 +127,14 @@ def main(config):
     
     # Add Source LiDAR point cloud
     c_source_pcd = o3d.geometry.PointCloud()
-    c_source_pcd.points = o3d.utility.Vector3dVector(c_all_points)
-    BLUE_color = np.full((c_all_points.shape[0], 3), color_table[2]) # BLUE COLOR
+    c_source_pcd.points = o3d.utility.Vector3dVector(g_point_0)
+    BLUE_color = np.full((g_point_0.shape[0], 3), color_table[2]) # BLUE COLOR
     c_source_pcd.colors = o3d.utility.Vector3dVector(BLUE_color)
     vis.add_geometry(c_source_pcd)
     
     mesh_extractor = MeshExtractor(decoder, voxels_dim=64)
-    for (frame_id, obj), (_, g_point_obj) in zip(objects_recon.items(), g_point.items()):
+    for (frame_id, obj)in objects_recon.items():
+    # for (frame_id, obj), (_, g_point_obj) in zip(objects_recon.items(), g_point.items()):
         
         # Add Source LiDAR point cloud - global
         # g_source_pcd = o3d.geometry.PointCloud()

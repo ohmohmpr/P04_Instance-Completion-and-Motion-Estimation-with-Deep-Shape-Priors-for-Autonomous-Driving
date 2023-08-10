@@ -62,8 +62,8 @@ def main(config):
     s_pose = {}
     
     for frame_id, det in detections.items():
-        if det.canonical_point.shape[0] > 200:
-            c_all_points = convert_to_canonic_space(det.canonical_point)
+        if det.pts_obj_global.shape[0] > 200:
+            c_all_points = convert_to_canonic_space(det.pts_obj_global)
             obj = optimizer.reconstruct_object(np.eye(4) , c_all_points)
             obj.g_pose = det.g_pose @ rott @ obj.t_cam_obj
             obj.s_pose = det.s_pose @ rott @ obj.t_cam_obj
@@ -92,8 +92,8 @@ def main(config):
     
     # # Add Source LiDAR point cloud
     # c_source_pcd = o3d.geometry.PointCloud()
-    # c_source_pcd.points = o3d.utility.Vector3dVector(canonical_point)
-    # green_color = np.full((canonical_point.shape[0], 3), color_table[1]) # Green COLOR
+    # c_source_pcd.points = o3d.utility.Vector3dVector(pts_obj_global)
+    # green_color = np.full((pts_obj_global.shape[0], 3), color_table[1]) # Green COLOR
     # c_source_pcd.colors = o3d.utility.Vector3dVector(green_color)
     # vis.add_geometry(c_source_pcd)
     
