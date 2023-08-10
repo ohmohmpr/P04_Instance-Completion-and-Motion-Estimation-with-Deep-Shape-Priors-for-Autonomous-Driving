@@ -39,8 +39,7 @@ BLUE = np.array([0.4, 0.5, 0.9])
 SPHERE_SIZE = 0.20
 
 save_mesh_dir = "results/deep_sdf/mesh"
-g_pose_path = np.load("results/deep_sdf/pose/g_pose_209.npy", allow_pickle='TRUE').item()
-s_pose_path = np.load("results/deep_sdf/pose/s_pose_209.npy", allow_pickle='TRUE').item()
+instance_id_list = [209, 512]
 
 class StubVisualizer(ABC):
     def __init__(self):
@@ -259,10 +258,8 @@ class RegistrationVisualizer(StubVisualizer):
         # Visual in sensor frame
         self.remove_all()
 
-        instance_id = 209
         for id, current_instance in current_instances.items():
-            if current_instance.last_frame == self.frames_ID :
-            # if current_instance.last_frame == self.frames_ID :
+            if current_instance.last_frame == self.frames_ID and current_instance.id in instance_id_list:
                 # print("###############################################################\n")
                 # print("current_instance\n", current_instance)
                 ##################### VISUALIZAION #####################
@@ -283,7 +280,7 @@ class RegistrationVisualizer(StubVisualizer):
                 ##################### EXTRACT POINTS #####################
                 # # Get g_pose_visuals
                 # g_selected_bbox = current_instance.g_pose_visuals[current_instance.last_frame]
-                # line_set, box3d = translate_boxes_to_open3d_instance(g_selected_bbox)
+                # line_set, box3d = translate_boxes_to_open3d_instance(g_selected_bbox, True)
                 
                 # # Get g_source_points
                 # source_points = np.hstack((np.asarray(self.source.points), np.ones((np.asarray(self.source.points).shape[0], 1))))
@@ -305,14 +302,20 @@ class RegistrationVisualizer(StubVisualizer):
                 ##################### EXTRACT POINTS #####################
                 
                 ##################### ADD MESH #####################
-                if current_instance.id == instance_id:
+                if current_instance.id in instance_id_list:
+                    instance_id = current_instance.id
                     try:
-                        mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}', "%d.ply" % self.frames_ID))
+                        # mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}', "%d.ply" % self.frames_ID))
+                        mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}-accumulated', "%d.ply" % self.frames_ID))
                         mesh.compute_vertex_normals()
                         
                         if self.global_view:
+                            g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}.npy", allow_pickle='TRUE').item()
+                            # g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
                             op_pose = g_pose_path[self.frames_ID]
                         else:
+                            s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}.npy", allow_pickle='TRUE').item()
+                            # s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
                             op_pose = s_pose_path[self.frames_ID]
                         mesh.transform(op_pose)
                         mesh.paint_uniform_color(color_code)
