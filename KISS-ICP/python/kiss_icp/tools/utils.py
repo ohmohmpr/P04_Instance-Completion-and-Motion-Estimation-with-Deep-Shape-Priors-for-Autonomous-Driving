@@ -116,10 +116,10 @@ class InstanceAssociation:
         for id in idx: 
             self.current_instances.pop(id)
             
-def translate_boxes_to_open3d_instance(bbox):
+def translate_boxes_to_open3d_instance(bbox, crop=False):
     """
-            4-------- 6
-        /|         /|
+          4 -------- 6
+         /|         /|
         5 -------- 3 .
         | |        | |
         . 7 -------- 1
@@ -129,7 +129,11 @@ def translate_boxes_to_open3d_instance(bbox):
     """
     center = [bbox.x, bbox.y, bbox.z]
     lwh = [bbox.length, bbox.width, bbox.height]
-    box3d = o3d.geometry.OrientedBoundingBox(center, bbox.rot, lwh)
+    if not crop:
+        box3d = o3d.geometry.OrientedBoundingBox(center, bbox.rot, lwh)
+    else:
+        lwh = [bbox.length, bbox.width, bbox.height * 1]
+        box3d = o3d.geometry.OrientedBoundingBox(center, bbox.rot, lwh)
 
     line_set = o3d.geometry.LineSet.create_from_oriented_bounding_box(box3d)
     lines = np.asarray(line_set.lines)
