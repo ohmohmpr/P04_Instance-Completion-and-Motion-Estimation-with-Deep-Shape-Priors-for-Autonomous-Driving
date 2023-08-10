@@ -74,12 +74,12 @@ class OutputPCD:
     s_pose_visuals: BoundingBox3D
     g_pose: np.ndarray = field(init=False)
     s_pose: np.ndarray = field(init=False)
-    canonical_point: np.ndarray = field(init=False)
+    pts_obj_global: np.ndarray = field(init=False)
     
     def __post_init__(self):
         self.get_g_pose()
         self.get_s_pose()
-        self.get_canonical_points()
+        self.get_pts_obj_global()
         
         
     def get_g_pose(self):
@@ -92,11 +92,11 @@ class OutputPCD:
         pose = np.vstack((pose, np.array([0, 0, 0, 1])))
         self.s_pose = pose
     
-    def get_canonical_points(self):
+    def get_pts_obj_global(self):
         inv_pose = np.linalg.inv(self.g_pose)
         
         pcd = np.hstack((self.PCD, np.ones((self.PCD.shape[0] , 1))))
 
         pcd = (inv_pose @ pcd.T).T
-        self.canonical_point = pcd[:, :3]
+        self.pts_obj_global = pcd[:, :3]
         
