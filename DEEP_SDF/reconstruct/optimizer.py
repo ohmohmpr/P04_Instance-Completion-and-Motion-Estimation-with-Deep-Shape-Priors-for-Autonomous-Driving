@@ -57,7 +57,7 @@ class Optimizer(object):
 
         # Initial Pose Estimate
         t_cam_obj = torch.from_numpy(t_cam_obj).to(dtype=torch.float32)
-        t_obj_cam = torch.inverse(t_cam_obj)
+        # t_obj_cam = torch.inverse(t_cam_obj)
         print("BEFORE t_cam_obj", t_cam_obj)
         
         # surface points within Omega_s
@@ -68,10 +68,10 @@ class Optimizer(object):
         loss = 0.
         for e in range(self.num_iterations_joint_optim):
             # get depth range and sample points along the rays
-            t_cam_obj = torch.inverse(t_obj_cam)
+            # t_cam_obj = torch.inverse(t_obj_cam)
 
             # 1. Compute SDF (3D) loss
-            sdf_rst = compute_sdf_loss(self.decoder, pts_surface, t_obj_cam, latent_vector)
+            sdf_rst = compute_sdf_loss(self.decoder, pts_surface, t_cam_obj, latent_vector)
             if sdf_rst is None:
                 return ForceKeyErrorDict(t_cam_obj=None, code=None, is_good=False, loss=loss)
             else:
@@ -79,7 +79,7 @@ class Optimizer(object):
             robust_res_sdf, sdf_loss, _ = get_robust_res(res_sdf, self.b2)
             if math.isnan(sdf_loss):
                 return ForceKeyErrorDict(t_cam_obj=None, code=None, is_good=False, loss=loss)
-
+            
             loss = self.k2 * sdf_loss
             z = latent_vector.cpu()
 
@@ -104,16 +104,21 @@ class Optimizer(object):
 
             delta_c = dx[pose_dim:pose_dim + self.code_len]
             delta_t = exp_sim3(self.lr * delta_p)
-            t_obj_cam = torch.mm(delta_t, t_obj_cam)
+            t_cam_obj = torch.mm(delta_t, t_cam_obj)
+            
+            # YUE PAN SCALE will try later
+            # cur_scale = torch.det(t_cam_obj[:3, :3]) ** (-1 / 3)
+            # print(cur_scale)
+            
             latent_vector += self.lr * delta_c
             # latent_vector += self.lr * delta_c.cuda()
 
-            print("Object joint optimization: Iter %d, loss: %f, sdf loss: %f, " % (e, loss, sdf_loss))
+            print("Object joint optimization: Iter %d, loss: %f, sdf loss: %f" % (e, loss, sdf_loss))
 
         end = get_time()
         print("Reconstruction takes %f seconds" % (end - start))
-        t_cam_obj = torch.inverse(t_obj_cam)
-        print("BEFORE t_cam_obj", t_cam_obj)
+        # t_cam_obj = torch.inverse(t_obj_cam)
+        print("AFTER t_cam_obj", t_cam_obj)
         return ForceKeyErrorDict(t_cam_obj=t_cam_obj.numpy(),
                                  code=latent_vector.cpu().numpy(),
                                  is_good=True, loss=loss)
