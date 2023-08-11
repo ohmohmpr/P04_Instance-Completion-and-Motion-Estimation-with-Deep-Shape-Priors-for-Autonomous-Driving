@@ -42,7 +42,8 @@ def main(config):
     
     optimizer = Optimizer(decoder, cfg)
     
-    id = 209
+    # instance_id_list = [0, 1, 72, 209, 373, 512, 551, 555]
+    id = 551
     detections = np.load(f'results/instance_association/PointCloud_KITTI21_Obj_ID_{id}.npy', allow_pickle='TRUE').item()
 
     # start reconstruction
@@ -120,7 +121,6 @@ def main(config):
     
     end = get_time()
     print("Reconstructed %d objects in the scene, time elapsed: %f seconds" % (len(objects_recon), end - start))
-
     # Visualize results
     vis = o3d.visualization.Visualizer()
     vis.create_window()
@@ -155,8 +155,10 @@ def main(config):
         
         write_mesh_to_ply(mesh.vertices, mesh.faces, os.path.join(f"{save_dir}/{id}-accumulated", "%d.ply" % frame_id))
     
+    print("FINISHED")
+    # COMMENT THIS LINE, result in easy visualization.
     coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=100, origin=[0, 0, 0])
-    vis.add_geometry(coordinate_frame)
+    vis.add_geometry(coordinate_frame) 
     
     vis.run()
     vis.destroy_window()
