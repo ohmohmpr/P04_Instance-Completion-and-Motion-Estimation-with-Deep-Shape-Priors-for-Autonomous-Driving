@@ -1,8 +1,8 @@
 from bbox import  BBox3D
+from collections import defaultdict
 from dataclasses import dataclass, field
 import numpy as np
 import open3d as o3d
-from pyquaternion import Quaternion
 from scipy.spatial.transform import Rotation as R
 from typing import Dict
 
@@ -62,8 +62,43 @@ class Instance:
     g_pose_visuals: Dict[int, BoundingBox3D]
     s_pose_ious: Dict[int, BBox3D]
     g_pose_ious: Dict[int, BBox3D]
+    
+    # ## attributes to be excluded in __str__:
+    # # https://stackoverflow.com/questions/71384165/trouble-creating-defaultdict-in-dataclass
+    # # https://stackoverflow.com/questions/68722516/exclude-some-attributes-from-str-representation-of-a-dataclass
+    # _g_points: defaultdict[dict] = field(default_factory=lambda: defaultdict(dict), repr=False)
+    
+    # def get_point_cloud_inside_bbox(self, source_points, pose):
+
+    #     # Create bounding box in global frame
+    #     g_bbox = self.g_pose_visuals[self.last_frame]
+    #     box3d = self.create_bbox(g_bbox)
+        
+    #     # Convert source points in sensor frame to global frame
+    #     source_points = np.hstack((np.asarray(source_points), np.ones((np.asarray(source_points).shape[0], 1))))
+    #     g_source_points = (pose @ source_points.T).T
+    #     g_source_points = g_source_points[:, :3]
+        
+    #     # Create points
+    #     pcd = o3d.geometry.PointCloud()
+    #     pcd.points = o3d.utility.Vector3dVector(g_source_points)
+
+    #     # Get index
+    #     idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
+    #     g_points = np.asarray(pcd.points)[idx_points, :]
+    #     self._g_points[self.last_frame] = g_points
         
         
+    # def create_bbox(self, bbox):
+    #     center = [bbox.x, bbox.y, bbox.z]
+    #     lwh = [bbox.length, bbox.width, bbox.height]
+    #     box3d = o3d.geometry.OrientedBoundingBox(center, bbox.rot, lwh)
+    #     return box3d
+                
+
+        
+                
+                
 @dataclass
 class OutputPCD:
     '''
