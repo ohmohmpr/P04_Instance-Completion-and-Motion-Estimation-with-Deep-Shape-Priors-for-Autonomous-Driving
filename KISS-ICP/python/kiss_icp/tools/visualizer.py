@@ -39,7 +39,8 @@ BLUE = np.array([0.4, 0.5, 0.9])
 SPHERE_SIZE = 0.20
 
 save_mesh_dir = "results/deep_sdf/mesh"
-instance_id_list = [209, 512]
+# instance_id_list = [209, 512]
+instance_id_list = [0, 1, 72, 209, 373, 512, 551, 555]
 
 class StubVisualizer(ABC):
     def __init__(self):
@@ -259,10 +260,28 @@ class RegistrationVisualizer(StubVisualizer):
         self.remove_all()
 
         for id, current_instance in current_instances.items():
+            # if current_instance.last_frame == self.frames_ID and current_instance.id in instance_id_list:
+            
+            # print("current_instance\n", current_instance)
+            # if current_instance.last_frame == self.frames_ID:
+            #     ##################### VISUALIZAION ALL #####################
+            #     color_code = current_instance.color_code
+                
+            #     if self.global_view:
+            #         bbox = current_instance.g_pose_visuals[current_instance.last_frame]
+            #     else:
+            #         bbox = current_instance.s_pose_visuals[current_instance.last_frame]
+                    
+            #     line_set, box3d = translate_boxes_to_open3d_instance(bbox)
+            #     line_set.paint_uniform_color(color_code)
+            #     self.vis.add_geometry(line_set, reset_bounding_box=False)
+            #     self.visual_instances.append(line_set)
+            #     ##################### VISUALIZAION ALL #####################
+                
             if current_instance.last_frame == self.frames_ID and current_instance.id in instance_id_list:
-                # print("###############################################################\n")
-                # print("current_instance\n", current_instance)
-                ##################### VISUALIZAION #####################
+                instance_id = current_instance.id
+                
+                ##################### VISUALIZAION SOME #####################
                 color_code = current_instance.color_code
                 
                 if self.global_view:
@@ -275,7 +294,7 @@ class RegistrationVisualizer(StubVisualizer):
                 self.vis.add_geometry(line_set, reset_bounding_box=False)
                 self.visual_instances.append(line_set)
                 
-                ##################### VISUALIZAION #####################
+                ##################### VISUALIZAION SOME #####################
                 
                 ##################### EXTRACT POINTS #####################
                 # # Get g_pose_visuals
@@ -310,12 +329,12 @@ class RegistrationVisualizer(StubVisualizer):
                         mesh.compute_vertex_normals()
                         
                         if self.global_view:
-                            g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}.npy", allow_pickle='TRUE').item()
-                            # g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
+                            # g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}.npy", allow_pickle='TRUE').item()
+                            g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
                             op_pose = g_pose_path[self.frames_ID]
                         else:
-                            s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}.npy", allow_pickle='TRUE').item()
-                            # s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
+                            # s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}.npy", allow_pickle='TRUE').item()
+                            s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
                             op_pose = s_pose_path[self.frames_ID]
                         mesh.transform(op_pose)
                         mesh.paint_uniform_color(color_code)
