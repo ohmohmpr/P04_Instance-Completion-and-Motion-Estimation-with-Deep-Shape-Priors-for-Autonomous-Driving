@@ -35,6 +35,13 @@ class instance_association
 class instance
     x, y, z, rot
 ```
+'IndexError: index 4000 is out of bounds for axis 0 with size 4000'    
+observed many of wrong instance association in sequence 00        
+
+we can test new program on that car in sequence 04        
+
+observed many of wrong instance association in sequence 07      
+performance issue in sequence 20      
 
 ## Extract Point cloud
 (offline)
@@ -67,3 +74,5 @@ addd(mesh)
 ```
 
 
+## Next tasks
+visualizer
