@@ -11,7 +11,7 @@ optimizer:
     b2: 0.025
     num_iterations: 10
     learning_rate: 1.0
-    scale_damping: 1 # try 0.1 or look in yue pan whatsapp
+    scale_damping: 0.001 # try 0.1 or look in yue pan whatsapp
   pose_only_optim: 
     num_iterations: 5
     learning_rate: 1.0

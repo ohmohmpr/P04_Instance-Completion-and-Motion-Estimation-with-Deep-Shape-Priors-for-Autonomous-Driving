@@ -132,7 +132,7 @@ def translate_boxes_to_open3d_instance(bbox, crop=False):
     if not crop:
         box3d = o3d.geometry.OrientedBoundingBox(center, bbox.rot, lwh)
     else:
-        lwh = [bbox.length, bbox.width, bbox.height * 1]
+        lwh = [bbox.length, bbox.width, bbox.height * 0.9]
         box3d = o3d.geometry.OrientedBoundingBox(center, bbox.rot, lwh)
 
     line_set = o3d.geometry.LineSet.create_from_oriented_bounding_box(box3d)

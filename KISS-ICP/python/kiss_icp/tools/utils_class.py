@@ -56,12 +56,12 @@ class TempInstance:
 class Instance:
     id: int
     last_frame: int
-    color_code: np.ndarray
+    color_code: np.ndarray = field(repr=False)
 
-    s_pose_visuals: Dict[int, BoundingBox3D]
-    g_pose_visuals: Dict[int, BoundingBox3D]
-    s_pose_ious: Dict[int, BBox3D]
-    g_pose_ious: Dict[int, BBox3D]
+    s_pose_visuals: Dict[int, BoundingBox3D] = field(repr=False)
+    g_pose_visuals: Dict[int, BoundingBox3D] = field(repr=False)
+    s_pose_ious: Dict[int, BBox3D] = field(repr=False)
+    g_pose_ious: Dict[int, BBox3D] = field(repr=False)
     
     # ## attributes to be excluded in __str__:
     # # https://stackoverflow.com/questions/71384165/trouble-creating-defaultdict-in-dataclass

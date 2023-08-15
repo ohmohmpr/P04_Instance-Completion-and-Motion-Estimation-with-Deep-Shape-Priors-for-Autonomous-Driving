@@ -6,7 +6,7 @@ The goal is to make them online.
  - [4. Add mesh](#add-mesh) 
 
 ## Instance Association
-The goal is to find data association of instances. track car.    
+The goal is to find data association of instances. associating these detections over time according to object identities.  HOTA.    
 (in progress) current method.
 
 
@@ -44,7 +44,8 @@ observed many of wrong instance association in sequence 07
 performance issue in sequence 20      
 
 ## Extract Point cloud
-(offline)
+extract point cloud from bounding box
+(offline because can extract only one car )
 ```python
 extract_point_cloud(source_point_from_kiss_icp, instance)
     bbox_used_to_get_pcl = create_box(instance)
@@ -55,6 +56,10 @@ return pcl_of_each_instance
 
 ## Optimization
 (offline: Due to CUDA)
+
+TASK:
+1. loss function addition       
+RANSAC REMOVE GROUND point in loss calculation.     
 
 ```python
 optimizer(pcl_of_each_instance, pose )

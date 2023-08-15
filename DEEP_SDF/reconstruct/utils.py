@@ -22,6 +22,9 @@ from addict import Dict
 import plyfile
 import skimage.measure as measure
 from deep_sdf.workspace import config_decoder
+from pyquaternion import Quaternion
+from PIL import Image, ImageFont, ImageDraw
+import open3d as o3d
 
 # colors used for visualization
 color_table = [[230. / 255., 0., 0.],  # red
@@ -240,3 +243,47 @@ def convert_to_world_frame(pcd_c_pose):
     
     pcd_g_pose = (rott @ pcd_c_pose.T).T
     return pcd_g_pose[:, :3], rott
+
+
+
+def text_3d(text, pos, direction=None, degree=90.0, font='/Users/panyr/Library/Fonts/DejaVu_Sans_Mono_Nerd_Font_Complete.ttf', font_size=400):
+    """
+    https://github.com/isl-org/Open3D/issues/2
+    Generate a 3D text point cloud used for visualization.
+    Author: Jiahui Huang, heiwang1997 at github
+    :param text: content of the text
+    :param pos: 3D xyz position of the text upper left corner
+    :param direction: 3D normalized direction of where the text faces
+    :param degree: in plane rotation of text
+    :param font: Name of the font - change it according to your system
+    :param font_size: size of the font
+    :return: o3d.geoemtry.PointCloud object
+    """
+    if direction is None:
+        direction = (0., 0., 1.)
+
+    font_obj = ImageFont.truetype(font, font_size)
+    font_dim = font_obj.getsize(text)
+
+    img = Image.new('RGB', font_dim, color=(255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    draw.text((0, 0), text, font=font_obj, fill=(0, 0, 0))
+    img = np.asarray(img)
+    img_mask = img[:, :, 0] < 128
+    indices = np.indices([*img.shape[0:2], 1])[:, img_mask, 0].reshape(3, -1).T
+
+    pcd = o3d.geometry.PointCloud()
+    pcd.colors = o3d.utility.Vector3dVector(img[img_mask, :].astype(float) / 255.0)
+    pcd.points = o3d.utility.Vector3dVector(indices / 100.0)
+
+    raxis = np.cross([0.0, 1.0, 0.0], direction)
+    if np.linalg.norm(raxis) < 1e-6:
+        raxis = (0.0, 0.0, 1.0)
+    
+    pcd.scale(0.2, np.asarray([[0,0,0]]).T)        
+    print("np.arccos(direction[2])", np.arccos(direction[2]))
+    trans = (Quaternion(axis=raxis, radians=np.arccos(direction[2])) *
+             Quaternion(axis=direction, degrees=degree)).transformation_matrix
+    trans[0:3, 3] = np.asarray(pos)
+    pcd.transform(trans)
+    return pcd
