@@ -58,12 +58,13 @@ class Optimizer(object):
 
         # Initial Pose Estimate
         t_cam_obj = torch.from_numpy(t_cam_obj).to(dtype=torch.float32)
+        # t_cam_obj = torch.from_numpy(t_cam_obj).float()
         # t_obj_cam = torch.inverse(t_cam_obj)
         print("BEFORE t_cam_obj", t_cam_obj)
         
         # surface points within Omega_s
         pts_surface = torch.from_numpy(pts).to(dtype=torch.float32)
-        # pts_surface = torch.from_numpy(pts).cuda()
+        # pts_surface = torch.from_numpy(pts).cuda().float()
 
         start = get_time()
         loss = 0.
