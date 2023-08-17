@@ -99,8 +99,8 @@ def get_batch_sdf_jacobian(decoder, lat_vec, x, out_dim=1):
     inputs.requires_grad = True
     y = decoder(inputs)  # (n, out_dim, out_dim)
     # (n, out_dim, out_dim)
-    w = torch.eye(out_dim).view(1, out_dim, out_dim).repeat(n, 1, 1)
-    # w = torch.eye(out_dim).view(1, out_dim, out_dim).repeat(n, 1, 1).cuda()
+    # w = torch.eye(out_dim).view(1, out_dim, out_dim).repeat(n, 1, 1)
+    w = torch.eye(out_dim).view(1, out_dim, out_dim).repeat(n, 1, 1).cuda()
     y.backward(w, retain_graph=False)
 
     return y.detach(), inputs.grad.data.detach()
@@ -175,10 +175,10 @@ def get_points_to_pose_jacobian_sim3(points):
     """
     n = points.shape[0]
     eye = torch.eye(3).view(1, 3, 3)
-    batch_eye = eye.repeat(n, 1, 1)
-    zero = torch.zeros(n)
-    # batch_eye = eye.repeat(n, 1, 1).cuda()
-    # zero = torch.zeros(n).cuda()
+    # batch_eye = eye.repeat(n, 1, 1)
+    # zero = torch.zeros(n)
+    batch_eye = eye.repeat(n, 1, 1).cuda()
+    zero = torch.zeros(n).cuda()
     x = points[:, 0]
     y = points[:, 1]
     z = points[:, 2]

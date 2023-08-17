@@ -49,11 +49,11 @@ class Optimizer(object):
         """
         # Always start from zero code
         if code is None:
-            latent_vector = torch.zeros(self.code_len)
-            # latent_vector = torch.zeros(self.code_len).cuda()
+            # latent_vector = torch.zeros(self.code_len)
+            latent_vector = torch.zeros(self.code_len).cuda()
         else:
-            latent_vector = torch.from_numpy(code[:self.code_len])
-            # latent_vector = torch.from_numpy(code[:self.code_len]).cuda()
+            # latent_vector = torch.from_numpy(code[:self.code_len])
+            latent_vector = torch.from_numpy(code[:self.code_len]).cuda()
 
         # Initial Pose Estimate
         t_cam_obj = torch.from_numpy(t_cam_obj).to(dtype=torch.float32)
@@ -61,8 +61,8 @@ class Optimizer(object):
         print("BEFORE t_cam_obj", t_cam_obj)
         
         # surface points within Omega_s
-        pts_surface = torch.from_numpy(pts).to(dtype=torch.float32)
-        # pts_surface = torch.from_numpy(pts).cuda()
+        # pts_surface = torch.from_numpy(pts).to(dtype=torch.float32)
+        pts_surface = torch.from_numpy(pts).cuda().float()
 
         start = get_time()
         loss = 0.
@@ -110,8 +110,8 @@ class Optimizer(object):
             # cur_scale = torch.det(t_cam_obj[:3, :3]) ** (-1 / 3)
             # print(cur_scale)
             
-            latent_vector += self.lr * delta_c
-            # latent_vector += self.lr * delta_c.cuda()
+            # latent_vector += self.lr * delta_c
+            latent_vector += self.lr * delta_c.cuda()
 
             print("Object joint optimization: Iter %d, loss: %f, sdf loss: %f" % (e, loss, sdf_loss))
 
@@ -129,13 +129,13 @@ class MeshExtractor(object):
         self.code_len = code_len
         self.voxels_dim = voxels_dim
         with torch.no_grad():
-            self.voxel_points = create_voxel_grid(vol_dim=self.voxels_dim)
-            # self.voxel_points = create_voxel_grid(vol_dim=self.voxels_dim).cuda()
+            # self.voxel_points = create_voxel_grid(vol_dim=self.voxels_dim)
+            self.voxel_points = create_voxel_grid(vol_dim=self.voxels_dim).cuda()
 
     def extract_mesh_from_code(self, code):
         start = get_time()
-        latent_vector = torch.from_numpy(code[:self.code_len])
-        # latent_vector = torch.from_numpy(code[:self.code_len]).cuda()
+        # latent_vector = torch.from_numpy(code[:self.code_len])
+        latent_vector = torch.from_numpy(code[:self.code_len]).cuda()
         sdf_tensor = decode_sdf(self.decoder, latent_vector, self.voxel_points)
         vertices, faces = convert_sdf_voxels_to_mesh(sdf_tensor.view(self.voxels_dim, self.voxels_dim, self.voxels_dim))
         vertices = vertices.astype("float32")
