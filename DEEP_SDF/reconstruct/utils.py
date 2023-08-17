@@ -246,8 +246,9 @@ def convert_to_world_frame(pcd_c_pose):
 
 
 
-def text_3d(text, pos, direction=None, degree=90.0, font='/Users/panyr/Library/Fonts/DejaVu_Sans_Mono_Nerd_Font_Complete.ttf', font_size=400):
+def text_3d(text, pos, direction=None, degree=90.0, font='/usr/share/fonts/truetype/lato/Lato-Medium.ttf', font_size=400):
     """
+    /Users/panyr/Library/Fonts/DejaVu_Sans_Mono_Nerd_Font_Complete.ttf
     https://github.com/isl-org/Open3D/issues/2
     Generate a 3D text point cloud used for visualization.
     Author: Jiahui Huang, heiwang1997 at github
