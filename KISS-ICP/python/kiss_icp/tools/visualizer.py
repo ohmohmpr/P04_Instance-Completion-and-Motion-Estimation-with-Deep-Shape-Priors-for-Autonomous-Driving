@@ -39,7 +39,7 @@ BLUE = np.array([0.4, 0.5, 0.9])
 SPHERE_SIZE = 0.20
 
 save_mesh_dir = "results/deep_sdf/mesh"
-instance_id_list = [209, 512]
+instance_id_list = [209]
 # instance_id_list = [0, 1, 72, 209, 373, 512, 551, 555]
 
 class StubVisualizer(ABC):
