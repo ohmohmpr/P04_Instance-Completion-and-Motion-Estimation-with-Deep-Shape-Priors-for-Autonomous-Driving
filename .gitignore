@@ -6,6 +6,7 @@ result/
 KISS-ICP/python/kiss_icp/pipeline1.py
 KISS-ICP/python/kiss_icp/tools/visualizer1.py
 results/deep_sdf/mesh/
+dataset
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,c++
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,c++
