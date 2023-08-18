@@ -42,9 +42,16 @@ def main(config):
     
     optimizer = Optimizer(decoder, cfg)
     # instance_id_list = [0, 1, 72, 209, 373, 512, 551, 555]
-    id = 209
+    id = 1110
+# 1048 1059  
+# 1071(x) 1074 1075 1076(x) 1077(x)1078 1079(?) 1080
+# 1085(x)
+# 1119
+#
+# 1131
+# 1139 1141(?) 1142(x) 1144(x) 1145  1146(x) 1147(x)
     detections = np.load(f'results/instance_association/PointCloud_KITTI21_Obj_ID_{id}.npy', allow_pickle='TRUE').item()
-
+    
     # start reconstruction
     objects_recon = {}
     objects_recon_opt_accu = {}
@@ -70,20 +77,20 @@ def main(config):
         if det.pts_obj_global.shape[0] > 100:
 
 
-            ####################################### NOISE ###########################################################
-            pts_canonical_space_homo = np.hstack((det.pts_obj_global, np.ones((det.pts_obj_global.shape[0], 1))))
+            # ####################################### NOISE ###########################################################
+            # pts_canonical_space_homo = np.hstack((det.pts_obj_global, np.ones((det.pts_obj_global.shape[0], 1))))
 
-            theta = np.deg2rad(np.random.random_sample() * 20)
-            print("theta", theta)
-            rot_z = np.array([[np.cos(theta), -np.sin(theta), 0, 0],
-                     [np.sin(theta), np.cos(theta), 0, 0],
-                     [0, 0, 1, 0],
-                     [0, 0, 0, 0]])
+            # theta = np.deg2rad(np.random.random_sample() * 20)
+            # print("theta", theta)
+            # rot_z = np.array([[np.cos(theta), -np.sin(theta), 0, 0],
+            #          [np.sin(theta), np.cos(theta), 0, 0],
+            #          [0, 0, 1, 0],
+            #          [0, 0, 0, 0]])
             
-            pts_canonical_space_homo_op = (rot_z @ pts_canonical_space_homo.T).T
+            # pts_canonical_space_homo_op = (rot_z @ pts_canonical_space_homo.T).T
             
-            det.pts_obj_global = pts_canonical_space_homo_op[:, :3]
-            ####################################### NOISE ###########################################################
+            # det.pts_obj_global = pts_canonical_space_homo_op[:, :3]
+            # ####################################### NOISE ###########################################################
 
             pts_canonical_space = convert_to_canonic_space(det.pts_obj_global)
             obj = optimizer.reconstruct_object(np.eye(4) , pts_canonical_space)
@@ -189,6 +196,10 @@ def main(config):
     vis.create_window()
     
     mesh_extractor = MeshExtractor(decoder, voxels_dim=64)
+
+    if not os.path.exists(f"{save_dir}/{id}"):
+        os.makedirs(f"{save_dir}/{id}")
+
     for (frame_id, obj), (_, pts) in zip(objects_recon.items(), objects_recon_opt_accu_final.items()):
         # ##################### CANONICAL SPACE #####################
         # #### THE OPTIMIZED ONE ####
@@ -213,7 +224,7 @@ def main(config):
         # mesh_o3d.compute_vertex_normals()
         # mesh_o3d.paint_uniform_color(color_table[0])
         # # mesh_o3d.transform(pts.t_cam_obj)
-        # vis.add_geometry(mesh_o3d)
+        # # vis.add_geometry(mesh_o3d)
         # #### MESH OF THE OPTIMIZED ONE ####
         # ##################### CANONICAL SPACE #####################
 
@@ -244,6 +255,7 @@ def main(config):
 
         
         # o3d.io.write_point_cloud(f"results/deep_sdf/pcd/{id}-pcd-canonic-accu/{frame_id}.pcd", pts_opt_world_space)
+    
         write_mesh_to_ply(mesh.vertices, mesh.faces, os.path.join(f"{save_dir}/{id}", "%d.ply" % frame_id))
     
     print("FINISHED")

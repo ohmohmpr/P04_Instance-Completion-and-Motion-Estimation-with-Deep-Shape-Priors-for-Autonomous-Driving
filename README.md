@@ -32,8 +32,7 @@ python3 DEEP_SDF/reconstruct_frame1.py
 ### IPB
 
 ```sh
-cd KISS-ICP/python
-pip3 uninstall kiss-icp -y && pip3 install --verbose .
+pip3 uninstall kiss-icp -y && pip3 install --verbose KISS-ICP/python
 ```
 
 ```sh
