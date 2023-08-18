@@ -42,8 +42,8 @@ def main(config):
     
     optimizer = Optimizer(decoder, cfg)
     # instance_id_list = [0, 1, 72, 209, 373, 512, 551, 555]
-    id = 551
-    detections = np.load(f'results/instance_association/PointCloud_KITTI21_Obj_ID_{id}.npy', allow_pickle='TRUE').item()
+    id = 1147
+    detections = np.load(f'results/instance_association/new/PointCloud_KITTI21_Obj_ID_{id}-test.npy', allow_pickle='TRUE').item()
 
     # start reconstruction
     objects_recon = {}
@@ -61,9 +61,17 @@ def main(config):
     g_pose = {}
     s_pose = {}
     
+
+# 1048 1049 1059
+# 1066(1)
+# 1075 1078(1) 1080(3w) 1081(3)
+# 1090(2w) 1099(1) 1104(1)
+# 1119 1120(1) 1124(1) 1129(2)
+# 1131 1137(2) 1139(2) 1141(3)
+
     for frame_id, det in detections.items():
-        if det.pts_obj_global.shape[0] > 200:
-            c_all_points = convert_to_canonic_space(det.pts_obj_global)
+        if det.pts_obj_sensor.shape[0] > 200:
+            c_all_points = convert_to_canonic_space(det.pts_obj_sensor)
             obj = optimizer.reconstruct_object(np.eye(4) , c_all_points)
             obj.g_pose = det.g_pose @ rott @ obj.t_cam_obj
             obj.s_pose = det.s_pose @ rott @ obj.t_cam_obj
@@ -72,10 +80,10 @@ def main(config):
             s_pose[frame_id] = obj.s_pose
 
             objects_recon[frame_id] = obj
-            g_point = np.concatenate((g_point, det.PCD))
+            g_point = np.concatenate((g_point, det.pts_global))
     
-    np.save(f'results/deep_sdf/pose/g_pose_{id}.npy', np.array(g_pose, dtype=object), allow_pickle=True)
-    np.save(f'results/deep_sdf/pose/s_pose_{id}.npy', np.array(s_pose, dtype=object), allow_pickle=True)
+    np.save(f'results/deep_sdf/pose/new/g_pose_{id}.npy', np.array(g_pose, dtype=object), allow_pickle=True)
+    np.save(f'results/deep_sdf/pose/new/s_pose_{id}.npy', np.array(s_pose, dtype=object), allow_pickle=True)
     
     g_point = g_point[1:]
     
@@ -112,11 +120,14 @@ def main(config):
         mesh_o3d.transform(obj.g_pose)
         vis.add_geometry(mesh_o3d)
         
-        write_mesh_to_ply(mesh.vertices, mesh.faces, os.path.join(f"{save_dir}/{id}", "%d.ply" % frame_id))
+        isExist = os.path.exists(f"{save_dir}/new/{id}")
+        if not isExist:
+            os.makedirs(f"{save_dir}/new/{id}")
+        write_mesh_to_ply(mesh.vertices, mesh.faces, os.path.join(f"{save_dir}/new/{id}", "%d.ply" % frame_id))
     
     print("FINISHED")
-    coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=10, origin=[0, 0, 0])
-    vis.add_geometry(coordinate_frame)
+    # coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=10, origin=[0, 0, 0])
+    # vis.add_geometry(coordinate_frame)
     
     vis.run()
     vis.destroy_window()

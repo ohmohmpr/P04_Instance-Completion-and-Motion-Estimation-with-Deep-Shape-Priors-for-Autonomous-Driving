@@ -39,21 +39,14 @@ BLUE = np.array([0.4, 0.5, 0.9])
 SPHERE_SIZE = 0.20
 
 save_mesh_dir = "results/deep_sdf/mesh"
-# instance_id_list = [209]
-extract_id = 1110
-# 1048 1059  
-# 1071(x) 1074 1075 1076(x) 1077(x)1078 1079(?) 1080
-# 1085(x)
-# 1119
-#
-# 1131
-# 1139 1141(?) 1142(x) 1144(x) 1145  1146(x) 1147(x)
 
-
-instance_id_list = [1048, 1059, 1074, 1075, 1078, 1080,
-                    1085 , 1098,
-                    1119, 1131, 1139, 1141, 
-                    1142, 1144, 1145, 1146, 1147]
+# 1048 1049 1059
+# 1066(1)
+# 1075 1078(1) 1080(3w) 1081(3)
+# 1090(2w) 1099(1) 1104(1)
+# 1119 1120(1) 1124(1) 1129(2)
+# 1131 1137(2) 1139(2) 1141(3)
+instance_id_list = [0, 1]
 
 
 class StubVisualizer(ABC):
@@ -105,28 +98,6 @@ class RegistrationVisualizer(StubVisualizer):
         # Cache the state of the visualizer
         self.state = (
             self.render_map,
-                # if current_instance.id in instance_id_list:
-                #     instance_id = current_instance.id
-                #     try:
-                #         mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}', "%d.ply" % self.frames_ID))
-                #         # mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}-accumulated', "%d.ply" % self.frames_ID))
-                #         mesh.compute_vertex_normals()
-                        
-                #         if self.global_view:
-                #             g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}.npy", allow_pickle='TRUE').item()
-                #             # g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
-                #             op_pose = g_pose_path[self.frames_ID]
-                #         else:
-                #             s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}.npy", allow_pickle='TRUE').item()
-                #             # s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
-                #             op_pose = s_pose_path[self.frames_ID]
-                #         mesh.transform(op_pose)
-                #         mesh.paint_uniform_color(color_code)
-                #         self.vis.add_geometry(mesh, reset_bounding_box=False)
-                #         self.meshs.append(mesh)
-                #     except:
-                #         pass
-                # #################### ADD MESH #####################
             self.render_keypoints,
             self.render_source,
         )
@@ -150,6 +121,8 @@ class RegistrationVisualizer(StubVisualizer):
         self.vis.add_geometry(self.target)
         self._set_black_background(self.vis)
         self.vis.get_render_option().point_size = 1
+        for i in range(4000):
+            self.output_pcd_s[i] = {}
         print(
             f"{w_name} initialized. Press:\n"
             "\t[SPACE] to pause/start\n"
@@ -295,8 +268,8 @@ class RegistrationVisualizer(StubVisualizer):
         # Visual in sensor frame
         self.remove_all()
 
-        print("self.frames_ID\n", self.frames_ID)
-        print("current_instances\n", current_instances)
+        
+        
         for id, current_instance in current_instances.items():
             # if current_instance.last_frame == self.frames_ID and current_instance.id in instance_id_list:
             
@@ -318,8 +291,9 @@ class RegistrationVisualizer(StubVisualizer):
                 
                 
                 ##################### VISUALIZAION SOME #####################
-            if current_instance.last_frame == self.frames_ID and current_instance.id in instance_id_list:
-            # if current_instance.last_frame == self.frames_ID and self.frames_ID >= 900 and self.frames_ID <= 950:
+            # if current_instance.last_frame == self.frames_ID:
+            if current_instance.last_frame == self.frames_ID and (self.frames_ID >= 900 and self.frames_ID <= 950) \
+                or (current_instance.id >= 1048 and current_instance.id <= 1147):
                 instance_id = current_instance.id
                 color_code = current_instance.color_code
                 
@@ -335,57 +309,60 @@ class RegistrationVisualizer(StubVisualizer):
                 
                 #################### VISUALIZAION SOME #####################
                 
-                if current_instance.id == extract_id:
-                    #################### EXTRACT POINTS #####################
-                    # Get g_pose_visuals
-                    g_selected_bbox = current_instance.g_pose_visuals[current_instance.last_frame]
-                    line_set, box3d = translate_boxes_to_open3d_instance(g_selected_bbox, True)
-                    
-                    # Get g_source_points
-                    source_points = np.hstack((np.asarray(self.source.points), np.ones((np.asarray(self.source.points).shape[0], 1))))
-                    g_source_points = (pose @ source_points.T).T
-                    g_source_points = g_source_points[:, :3]
-                    
-                    # Create points
-                    pcd = o3d.geometry.PointCloud()
-                    # From numpy to Open3D
-                    pcd.points = o3d.utility.Vector3dVector(g_source_points)
-
-                    # Get index 
-                    idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
-                    
-                    # PCL in Bbox
-                    point_bbox = np.asarray(g_source_points)[idx_points, :]
-                    self.output_pcd_s[self.frames_ID] = OutputPCD(point_bbox, g_selected_bbox, current_instance.s_pose_visuals[current_instance.last_frame])
-                    print("point_bbox", point_bbox)
-                    #################### EXTRACT POINTS #####################
-                    ##################### EXTRACT POINTS #####################
-                    np.save(f'results/instance_association/PointCloud_KITTI21_Obj_ID_{instance_id}.npy', np.array(self.output_pcd_s, dtype=object), allow_pickle=True)
-                    ##################### EXTRACT POINTS #####################
+                # #################### EXTRACT POINTS #####################
+                # # Get s_pose_visuals
+                # g_selected_bbox = current_instance.g_pose_visuals[current_instance.last_frame]
+                # s_selected_bbox = current_instance.s_pose_visuals[current_instance.last_frame]
+                # _, box3d = translate_boxes_to_open3d_instance(s_selected_bbox, True)
                 
-                # #################### ADD MESH #####################
+                # # Get s_source_points
+                # s_source_points = np.asarray(self.source.points)
+                # # source_points = np.hstack((np.asarray(self.source.points), np.ones((n.p.asarray(self.source.points).shape[0], 1))))
+                # # g_source_points = (pose @ source_points.T).T
+                # # g_source_points = g_source_points[:, :3]
+                
+                # # Create points
+                # pcd = o3d.geometry.PointCloud()
+                # # From numpy to Open3D
+                # pcd.points = o3d.utility.Vector3dVector(s_source_points)
+
+                # # Get index 
+                # idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
+                
+                # # PCL in Bbox
+                # point_bbox = np.asarray(s_source_points)[idx_points, :]
+                # self.output_pcd_s[instance_id][self.frames_ID] = OutputPCD(point_bbox, g_selected_bbox, s_selected_bbox)
+                # #################### EXTRACT POINTS #####################
+                
+                # ##################### EXTRACT POINTS #####################
+                # filename = f'results/instance_association/new/PointCloud_KITTI21_Obj_ID_{instance_id}-test.npy'
+                # with open(filename, 'wb') as f:
+                #     np.save(f, np.array(self.output_pcd_s[instance_id], dtype=object), allow_pickle=True)
+                # ##################### EXTRACT POINTS #####################
+                
+                #################### ADD MESH #####################
                 # if current_instance.id in instance_id_list:
-                #     instance_id = current_instance.id
-                #     try:
-                #         mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}', "%d.ply" % self.frames_ID))
-                #         # mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}-accumulated', "%d.ply" % self.frames_ID))
-                #         mesh.compute_vertex_normals()
-                        
-                #         if self.global_view:
-                #             g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}.npy", allow_pickle='TRUE').item()
-                #             # g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
-                #             op_pose = g_pose_path[self.frames_ID]
-                #         else:
-                #             s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}.npy", allow_pickle='TRUE').item()
-                #             # s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
-                #             op_pose = s_pose_path[self.frames_ID]
-                #         mesh.transform(op_pose)
-                #         mesh.paint_uniform_color(color_code)
-                #         self.vis.add_geometry(mesh, reset_bounding_box=False)
-                #         self.meshs.append(mesh)
-                #     except:
-                #         pass
-                # #################### ADD MESH #####################
+                instance_id = current_instance.id
+                try:
+                    mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/new/{instance_id}', "%d.ply" % self.frames_ID))
+                    # mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}-accumulated', "%d.ply" % self.frames_ID))
+                    mesh.compute_vertex_normals()
+                    
+                    if self.global_view:
+                        g_pose_path = np.load(f"results/deep_sdf/pose/new/g_pose_{instance_id}.npy", allow_pickle='TRUE').item()
+                        # g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
+                        op_pose = g_pose_path[self.frames_ID]
+                    else:
+                        s_pose_path = np.load(f"results/deep_sdf/pose/new/s_pose_{instance_id}.npy", allow_pickle='TRUE').item()
+                        # s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
+                        op_pose = s_pose_path[self.frames_ID]
+                    mesh.transform(op_pose)
+                    mesh.paint_uniform_color(color_code)
+                    self.vis.add_geometry(mesh, reset_bounding_box=False)
+                    self.meshs.append(mesh)
+                except:
+                    pass
+                #################### ADD MESH #####################
                 
                 
         

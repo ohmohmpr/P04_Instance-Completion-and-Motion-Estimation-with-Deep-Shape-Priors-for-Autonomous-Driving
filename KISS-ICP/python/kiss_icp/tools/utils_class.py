@@ -56,10 +56,10 @@ class TempInstance:
 class Instance:
     id: int
     last_frame: int
-    color_code: np.ndarray = field(repr=False)
+    color_code: np.ndarray
 
-    s_pose_visuals: Dict[int, BoundingBox3D] = field(repr=False)
-    g_pose_visuals: Dict[int, BoundingBox3D] = field(repr=False)
+    s_pose_visuals: Dict[int, BoundingBox3D]
+    g_pose_visuals: Dict[int, BoundingBox3D]
     s_pose_ious: Dict[int, BBox3D] = field(repr=False)
     g_pose_ious: Dict[int, BBox3D] = field(repr=False)
     
@@ -104,18 +104,19 @@ class OutputPCD:
     '''
     Get points inside bounding boxes.
     '''
-    PCD: np.ndarray
+    PCD: np.ndarray #pts_sensor
     g_pose_visuals: BoundingBox3D
     s_pose_visuals: BoundingBox3D
     g_pose: np.ndarray = field(init=False)
     s_pose: np.ndarray = field(init=False)
-    pts_obj_global: np.ndarray = field(init=False)
+    pts_global: np.ndarray = field(init=False)
+    pts_obj_sensor: np.ndarray = field(init=False)
     
     def __post_init__(self):
         self.get_g_pose()
         self.get_s_pose()
-        self.get_pts_obj_global()
-        
+        self.get_pts_obj_sensor()
+        self.get_pts_global()
         
     def get_g_pose(self):
         pose = np.hstack((self.g_pose_visuals.rot, np.array([[self.g_pose_visuals.x], [self.g_pose_visuals.y], [self.g_pose_visuals.z]])))
@@ -127,11 +128,17 @@ class OutputPCD:
         pose = np.vstack((pose, np.array([0, 0, 0, 1])))
         self.s_pose = pose
     
-    def get_pts_obj_global(self):
-        inv_pose = np.linalg.inv(self.g_pose)
+    def get_pts_obj_sensor(self):
+        inv_pose = np.linalg.inv(self.s_pose)
         
         pcd = np.hstack((self.PCD, np.ones((self.PCD.shape[0] , 1))))
 
         pcd = (inv_pose @ pcd.T).T
-        self.pts_obj_global = pcd[:, :3]
+        self.pts_obj_sensor = pcd[:, :3]
+    
+    def get_pts_global(self):
+        pcd = np.hstack((self.pts_obj_sensor, np.ones((self.pts_obj_sensor.shape[0] , 1))))
+
+        pcd = (self.g_pose @ pcd.T).T
+        self.pts_global = pcd[:, :3]
         
