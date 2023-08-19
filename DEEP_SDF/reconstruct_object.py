@@ -42,7 +42,17 @@ def main(config):
     
     optimizer = Optimizer(decoder, cfg)
     # instance_id_list = [0, 1, 72, 209, 373, 512, 551, 555]
-    id = 1147
+    id = 1141
+
+# 1048 1049 1059
+# 1066(1)
+# 1075 1078(1) 1080(3w) 1081(3)
+# 1090(2w) 1099(1) 
+# 1104(1 - outlier)
+# 1119 1120(1) 1124(1) 1129(2)
+# 1131 
+# 1137(2 - outlier) 1139(2) 1141(3)
+
     detections = np.load(f'results/instance_association/new/PointCloud_KITTI21_Obj_ID_{id}-test.npy', allow_pickle='TRUE').item()
 
     # start reconstruction
@@ -60,14 +70,6 @@ def main(config):
 
     g_pose = {}
     s_pose = {}
-    
-
-# 1048 1049 1059
-# 1066(1)
-# 1075 1078(1) 1080(3w) 1081(3)
-# 1090(2w) 1099(1) 1104(1)
-# 1119 1120(1) 1124(1) 1129(2)
-# 1131 1137(2) 1139(2) 1141(3)
 
     for frame_id, det in detections.items():
         if det.pts_obj_sensor.shape[0] > 200:
