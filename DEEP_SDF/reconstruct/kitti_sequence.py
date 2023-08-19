@@ -156,12 +156,10 @@ class FrameWithLiDAR:
             h = det.s_pose_visuals.height
             ROT =  R.from_matrix(det.s_pose_visuals.rot)
             euler = ROT.as_euler('xyz')
-            theta = 1.7068298
+            theta = (-np.pi/2 +  euler[2])  *-1
             size = [w, l, h]
             trans = [x, y, z]
             
-            
-            print("trans, size, theta", trans, size, theta)
             # Get SE(3) transformation matrix from trans and theta
             T_velo_obj = np.array([[np.cos(theta), 0, -np.sin(theta), trans[0]],
                                    [-np.sin(theta), 0, -np.cos(theta), trans[1]],
@@ -190,26 +188,23 @@ class FrameWithLiDAR:
             #              (points_obj[:, 2] > -l) & (points_obj[:, 2] < l)
 
 
-            if det.pts_obj_global.shape[0] > 200:
-                pts_sensor_homo = np.hstack((det.pts_obj_global, np.ones((det.pts_obj_global.shape[0], 1))))
-                pts_sensor_homo_op = (det.s_pose @ pts_sensor_homo.T).T
-                # pts_sensor = pts_sensor_homo_op[:, :3]
+            if det.PCD.shape[0] > 200:
 
-                pts_surface_velo = pts_sensor_homo_op[:, :3]
+                pts_surface_velo = det.PCD
                 # pts_surface_velo = points_nearby[on_surface]
                 # Sample from all the depth measurement
                 N = pts_surface_velo.shape[0]
                 if N > self.max_lidar_pts:
                     sample_ind = np.linspace(0, N-1, self.max_lidar_pts).astype(np.int32)
                     pts_surface_velo = pts_surface_velo[sample_ind, :]
-                print("pts_surface_velo\n", pts_surface_velo)
-                print("self.T_cam_velo\n", self.T_cam_velo)
+                # print("pts_surface_velo\n", pts_surface_velo)
+                # print("self.T_cam_velo\n", self.T_cam_velo)
                 pts_surface_cam = (pts_surface_velo[:, None, :3] * self.T_cam_velo[:3, :3]).sum(-1) + self.T_cam_velo[:3, 3]
-                print("pts_surface_cam\n", pts_surface_cam)
+                # print("pts_surface_cam\n", pts_surface_cam)
                 T_cam_obj = self.T_cam_velo @ T_velo_obj
-                print("T_cam_obj\n", T_cam_obj)
+                # print("T_cam_obj\n", T_cam_obj)
                 T_cam_obj[:3, :3] *= l
-                print("T_cam_obj[:3, :3] *= l\n", T_cam_obj)
+                # print("T_cam_obj[:3, :3] *= l\n", T_cam_obj)
 
                 # Initialize detected instance
                 instance = ForceKeyErrorDict()
@@ -314,12 +309,12 @@ class KITIISequence:
         self.invK_cam = np.linalg.inv(self.K_cam).astype(np.float32)
 
         # Load the transfomration from T_cam0_velo, and compute the transformation T_cam2_velo
-        print("load_calib")
+        # print("load_calib")
         T_cam0_velo, T_cam2_cam0 = np.eye(4), np.eye(4)
         T_cam0_velo[:3, :] = np.reshape(filedata['Tr'], (3, 4))
-        print("T_cam0_velo", T_cam0_velo)
+        # print("T_cam0_velo", T_cam0_velo)
         T_cam2_cam0[0, 3] = P_cam2_cam0[0, 3] / P_cam2_cam0[0, 0]
-        print("T_cam2_cam0[0, 3]", T_cam2_cam0)
+        # print("T_cam2_cam0[0, 3]", T_cam2_cam0)
         self.T_cam_velo = T_cam2_cam0.dot(T_cam0_velo).astype(np.float32)
 
     def get_frame_by_id(self, frame_id, detections_bboxs):

@@ -152,27 +152,27 @@ def compute_sdf_loss(decoder, pts_surface_cam, t_obj_cam, latent_vector):
 #     return jac_toc, jac_code, res_d
 
 
-# def compute_rotation_loss_sim3(t_obj_cam):
-#     """
-#     :param t_obj_cam: c2o transformation (4, 4) in Sim(3)
-#     :return: Jacobian and residual of rotation regularization term
-#     """
-#     # E_rot = 1 - ry * ng
-#     t_cam_obj = torch.inverse(t_obj_cam)
-#     r_co = t_cam_obj[:3, :3]
-#     scale = torch.det(r_co) ** (1 / 3)
-#     r_co /= scale
-#     r_oc = torch.inverse(r_co)
+def compute_rotation_loss_sim3(t_obj_cam):
+    """
+    :param t_obj_cam: c2o transformation (4, 4) in Sim(3)
+    :return: Jacobian and residual of rotation regularization term
+    """
+    # E_rot = 1 - ry * ng
+    t_cam_obj = torch.inverse(t_obj_cam)
+    r_co = t_cam_obj[:3, :3]
+    scale = torch.det(r_co) ** (1 / 3)
+    r_co /= scale
+    r_oc = torch.inverse(r_co)
 
-#     ey = torch.tensor([0., 1., 0.])
-#     ng = torch.tensor([0., -1., 0.])
-#     ry = torch.mv(r_co, ey)
-#     res_rot = 1. - torch.dot(ry, ng)
-#     if res_rot < 1e-7:
-#         return torch.zeros(7), 0.
+    ey = torch.tensor([0., 1., 0.])
+    ng = torch.tensor([0., -1., 0.])
+    ry = torch.mv(r_co, ey)
+    res_rot = 1. - torch.dot(ry, ng)
+    if res_rot < 1e-7:
+        return torch.zeros(7), 0.
 
-#     J_rot = torch.cross(torch.mv(r_oc, ng), ey)
-#     J_sim3 = torch.zeros(7)
-#     J_sim3[3:6] = J_rot
+    J_rot = torch.cross(torch.mv(r_oc, ng), ey)
+    J_sim3 = torch.zeros(7)
+    J_sim3[3:6] = J_rot
 
-#     return J_sim3, res_rot
+    return J_sim3, res_rot

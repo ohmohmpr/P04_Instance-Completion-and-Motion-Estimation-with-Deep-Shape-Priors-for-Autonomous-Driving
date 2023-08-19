@@ -85,7 +85,7 @@ class Optimizer(object):
 
         return t_cam_obj
 
-    def reconstruct_object(self, t_cam_obj, pts, code=None):
+    def  reconstruct_object(self, t_cam_obj, pts, code=None):
         """
         :param t_cam_obj: object pose, object-to-camera transformation
         :param pts: surface points, under camera coordinate (M, 3)
@@ -101,9 +101,11 @@ class Optimizer(object):
 
         # Initial Pose Estimate
         t_cam_obj = torch.from_numpy(t_cam_obj)
+
         cur_scale = torch.det(t_cam_obj[:3, :3]) ** (-1 / 3)
-        print("cur_scale", cur_scale)
+        # print("cur_scale", cur_scale)
         t_cam_obj[:3, :3] = cur_scale * t_cam_obj[:3, :3]
+
         t_obj_cam = torch.inverse(t_cam_obj)
         # # ray directions within Omega_r
         # ray_directions = torch.from_numpy(rays).cuda()
@@ -201,9 +203,9 @@ class Optimizer(object):
             #       "render loss: %f, rotation loss: %f"
             #       % (e, loss, sdf_loss, render_loss, rot_loss))
 
-            # print("Object joint optimization: Iter %d, loss: %f, sdf loss: %f, "
-            #       "rotation loss: %f"
-            #       % (e, loss, sdf_loss, rot_loss))
+            print("Object joint optimization: Iter %d, loss: %f, sdf loss: %f, "
+                  "rotation loss: %f"
+                  % (e, loss, sdf_loss, rot_loss))
         end = get_time()
         # print("Reconstruction takes %f seconds" % (end - start))
         t_cam_obj = torch.inverse(t_obj_cam)

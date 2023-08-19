@@ -25,15 +25,13 @@ import numpy as np
 
 def config_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str,
-                        default='DEEP_SDF/configs/config_kitti.json',
-                        help='path to config file')
+    parser.add_argument('-c', '--config', type=str, required=True, help='path to config file')
     parser.add_argument('-d', '--sequence_dir', type=str, required=True, help='path to kitti sequence')
     parser.add_argument('-i', '--frame_id', type=int, required=True, help='frame id')
     return parser
 
 
-# python DEEP_SDF/reconstruct_frame.py --sequence_dir ../DSP-SLAM/data_semantic_kitti/velodyne/dataset/sequences/21/ --frame_id 240
+# python DEEP_SDF/reconstruct_frame.py --config DEEP_SDF/configs/config_kitti.json --sequence_dir ../DSP-SLAM/data_semantic_kitti/velodyne/dataset/sequences/21/ --frame_id 240
 
 # 2D and 3D detection and data association
 if __name__ == "__main__":
@@ -48,20 +46,24 @@ if __name__ == "__main__":
 
     # instance_id_list = [0, 1, 72, 209, 373, 512, 551, 555]
     id = 209
-    detections_bboxs = np.load(f'results/instance_association/new/PointCloud_KITTI21_Obj_ID_{id}-test.npy', allow_pickle='TRUE').item()
+    detections_bboxs = np.load(f'results/instance_association/PointCloud_KITTI21_Obj_ID_{id}.npy', allow_pickle='TRUE').item()
 
     detections = kitti_seq.get_frame_by_id(args.frame_id, detections_bboxs)
 
     # start reconstruction
     objects_recon = []
     start = get_time()
-
     for det in detections:
-
+        # # No observed rays, possibly not in fov
+        # if det.rays is None:
+        #     continue
+        # print("%d depth samples on the car, %d rays in total" % (det.num_surface_points, det.rays.shape[0]))
+        # obj = optimizer.reconstruct_object(det.T_cam_obj, det.surface_points, det.rays, det.depth)
         obj = optimizer.reconstruct_object(det.T_cam_obj, det.surface_points)
-
+        # # in case reconstruction fails
+        # if obj.code is None:
+        #     continue
         objects_recon += [obj]
-
     end = get_time()
     print("Reconstructed %d objects in the scene, time elapsed: %f seconds" % (len(objects_recon), end - start))
 
