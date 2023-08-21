@@ -42,7 +42,7 @@ def main(config):
     
     optimizer = Optimizer(decoder, cfg)
     # instance_id_list = [0, 1, 72, 209, 373, 512, 551, 555]
-    id = 1141
+    id = 209
 
 # 1048 1049 1059
 # 1066(1)
