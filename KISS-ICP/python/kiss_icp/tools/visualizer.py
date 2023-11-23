@@ -31,6 +31,7 @@ import numpy as np
 import open3d as o3d
 from kiss_icp.tools.utils import translate_boxes_to_open3d_instance, InstanceAssociation
 from kiss_icp.tools.utils_class import BoundingBox3D, OutputPCD
+from scipy.spatial.transform import Rotation as R
 
 YELLOW = np.array([1, 0.706, 0])
 RED = np.array([128, 0, 0]) / 255.0
@@ -102,9 +103,9 @@ class RegistrationVisualizer(StubVisualizer):
             self.render_source,
         )
 
-    def update(self, source, keypoints, target_map, pose, bboxes):
+    def update(self, source, keypoints, target_map, pose, bboxes, sd_token, annotation_metadata_tokens, first_pose, gt_pose):
         target = target_map.point_cloud()
-        self._update_geometries(source, keypoints, target, pose, bboxes)
+        self._update_geometries(source, keypoints, target, pose, bboxes, sd_token, annotation_metadata_tokens, first_pose, gt_pose)
         while self.block_vis:
             self.vis.poll_events()
             self.vis.update_renderer()
@@ -215,7 +216,7 @@ class RegistrationVisualizer(StubVisualizer):
             for frame in self.frames:
                 self.vis.remove_geometry(frame, reset_bounding_box=False)
 
-    def _update_geometries(self, source, keypoints, target, pose, bboxes):
+    def _update_geometries(self, source, keypoints, target, pose, bboxes, sd_token, annotation_metadata_tokens, first_pose, gt_pose):
         # Source hot frame
         if self.render_source:
             self.source.points = self.o3d.utility.Vector3dVector(source)
@@ -254,9 +255,8 @@ class RegistrationVisualizer(StubVisualizer):
         self.frames_ID = self.frames_ID + 1
         
         ego_car_pose = pose
-        
         boundingBoxes3D = []
-        
+
         for bbox in bboxes:
             axis_angles = np.array([0, 0, bbox[6] + 1e-10])
             rot = o3d.geometry.get_rotation_matrix_from_axis_angle(axis_angles)
@@ -264,13 +264,44 @@ class RegistrationVisualizer(StubVisualizer):
 
         self.InstanceAssociation.update(ego_car_pose, boundingBoxes3D, self.frames_ID)
         current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 3)
-        
+
+        try:
+            if annotation_metadata_tokens[sd_token["sample_token"]] and sd_token["is_key_frame"] == True:
+                # center_x, center_y, center_z
+                translation = np.array(annotation_metadata_tokens[sd_token["sample_token"]]["translation"])
+                translation = translation[:, np.newaxis]
+                # width, length, height.
+                size = annotation_metadata_tokens[sd_token["sample_token"]]["size"]
+                lhw_size = [size[1], size[0], size[2]]
+
+                # quaternion: w, x, y, z.
+                rotation = annotation_metadata_tokens[sd_token["sample_token"]]["rotation"]
+                r = R.from_quat([rotation[1], rotation[2], rotation[3], rotation[0]])
+
+                global_pose = np.hstack((r.as_matrix(), translation))
+                global_pose = np.vstack((global_pose, np.array([0, 0, 0, 1])))
+
+                poses = np.linalg.inv(gt_pose) @ np.linalg.inv(first_pose) @ global_pose
+                bbox = BoundingBox3D(poses[0, 3], poses[1, 3], poses[2, 3], 
+                                    lhw_size[0], lhw_size[1], lhw_size[2], poses[:3, :3])
+
+                # x, y, z, l, w, h, rotation_matrix
+                line_set, box3d = translate_boxes_to_open3d_instance(bbox)
+                line_set.paint_uniform_color((1, 0, 0))
+                self.vis.add_geometry(line_set, reset_bounding_box=False)
+
+        except KeyError:
+            pass
+        except Exception as error:
+            # handle the exception
+            print("An exception occurred:", error)
+
         # Visual in sensor frame
-        self.remove_all()
+        # self.remove_all()
 
         
         
-        for id, current_instance in current_instances.items():
+        # for id, current_instance in current_instances.items():
             # if current_instance.last_frame == self.frames_ID and current_instance.id in instance_id_list:
             
             
@@ -290,24 +321,24 @@ class RegistrationVisualizer(StubVisualizer):
             #     ##################### VISUALIZAION ALL #####################
                 
                 
-                ##################### VISUALIZAION SOME #####################
-            # if current_instance.last_frame == self.frames_ID:
-            if current_instance.last_frame == self.frames_ID and (self.frames_ID >= 900 and self.frames_ID <= 950) \
-                or (current_instance.id >= 1048 and current_instance.id <= 1147):
-                instance_id = current_instance.id
-                color_code = current_instance.color_code
+            #     ##################### VISUALIZAION SOME #####################
+            # # if current_instance.last_frame == self.frames_ID:
+            # if current_instance.last_frame == self.frames_ID and (self.frames_ID >= 900 and self.frames_ID <= 950) \
+            #     or (current_instance.id >= 1048 and current_instance.id <= 1147):
+            #     instance_id = current_instance.id
+            #     color_code = current_instance.color_code
                 
-                if self.global_view:
-                    bbox = current_instance.g_pose_visuals[current_instance.last_frame]
-                else:
-                    bbox = current_instance.s_pose_visuals[current_instance.last_frame]
+            #     if self.global_view:
+            #         bbox = current_instance.g_pose_visuals[current_instance.last_frame]
+            #     else:
+            #         bbox = current_instance.s_pose_visuals[current_instance.last_frame]
                     
-                line_set, box3d = translate_boxes_to_open3d_instance(bbox)
-                line_set.paint_uniform_color(color_code)
-                self.vis.add_geometry(line_set, reset_bounding_box=False)
-                self.visual_instances.append(line_set)
+            #     line_set, box3d = translate_boxes_to_open3d_instance(bbox)
+            #     line_set.paint_uniform_color(color_code)
+            #     self.vis.add_geometry(line_set, reset_bounding_box=False)
+            #     self.visual_instances.append(line_set)
                 
-                #################### VISUALIZAION SOME #####################
+            #     #################### VISUALIZAION SOME #####################
                 
                 # #################### EXTRACT POINTS #####################
                 # # Get s_pose_visuals
@@ -340,29 +371,29 @@ class RegistrationVisualizer(StubVisualizer):
                 #     np.save(f, np.array(self.output_pcd_s[instance_id], dtype=object), allow_pickle=True)
                 # ##################### EXTRACT POINTS #####################
                 
-                #################### ADD MESH #####################
-                # if current_instance.id in instance_id_list:
-                instance_id = current_instance.id
-                try:
-                    mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/new/{instance_id}', "%d.ply" % self.frames_ID))
-                    # mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}-accumulated', "%d.ply" % self.frames_ID))
-                    mesh.compute_vertex_normals()
+                # #################### ADD MESH #####################
+                # # if current_instance.id in instance_id_list:
+                # instance_id = current_instance.id
+                # try:
+                #     mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/new/{instance_id}', "%d.ply" % self.frames_ID))
+                #     # mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}-accumulated', "%d.ply" % self.frames_ID))
+                #     mesh.compute_vertex_normals()
                     
-                    if self.global_view:
-                        g_pose_path = np.load(f"results/deep_sdf/pose/new/g_pose_{instance_id}.npy", allow_pickle='TRUE').item()
-                        # g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
-                        op_pose = g_pose_path[self.frames_ID]
-                    else:
-                        s_pose_path = np.load(f"results/deep_sdf/pose/new/s_pose_{instance_id}.npy", allow_pickle='TRUE').item()
-                        # s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
-                        op_pose = s_pose_path[self.frames_ID]
-                    mesh.transform(op_pose)
-                    mesh.paint_uniform_color(color_code)
-                    self.vis.add_geometry(mesh, reset_bounding_box=False)
-                    self.meshs.append(mesh)
-                except:
-                    pass
-                #################### ADD MESH #####################
+                #     if self.global_view:
+                #         g_pose_path = np.load(f"results/deep_sdf/pose/new/g_pose_{instance_id}.npy", allow_pickle='TRUE').item()
+                #         # g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
+                #         op_pose = g_pose_path[self.frames_ID]
+                #     else:
+                #         s_pose_path = np.load(f"results/deep_sdf/pose/new/s_pose_{instance_id}.npy", allow_pickle='TRUE').item()
+                #         # s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
+                #         op_pose = s_pose_path[self.frames_ID]
+                #     mesh.transform(op_pose)
+                #     mesh.paint_uniform_color(color_code)
+                #     self.vis.add_geometry(mesh, reset_bounding_box=False)
+                #     self.meshs.append(mesh)
+                # except:
+                #     pass
+                # #################### ADD MESH #####################
                 
                 
         

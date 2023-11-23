@@ -24,7 +24,7 @@ import importlib
 import os
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 
 import numpy as np
 
@@ -70,7 +70,10 @@ class NuScenesDataset:
         # Use only the samples from the current split.
         scene_token = self._get_scene_token(split_logs)
         self.lidar_tokens = self._get_lidar_tokens(scene_token)
-        self.gt_poses = self._load_poses()
+        self.first_pose, self.gt_poses = self._load_poses()
+        self.annotation_metadata_tokens = {}
+        self._get_sample_token(scene_token)
+        self.sd_tokens = self._get_sameple_data(scene_token)
 
     def __len__(self):
         return len(self.lidar_tokens)
@@ -110,7 +113,32 @@ class NuScenesDataset:
         # Convert from global coordinate poses to local poses
         first_pose = poses[0, :, :]
         poses = np.linalg.inv(first_pose) @ poses
-        return poses
+        return first_pose, poses
+
+    # def _get_sample_token(self, scene_token: str) -> Dict[str]:
+    def _get_sample_token(self, scene_token: str):
+        scene_rec = self.nusc.get("scene", scene_token)
+        sample_rec = self.nusc.get("sample", scene_rec["first_sample_token"])
+
+        ## should be function
+        for j in range(len(sample_rec["anns"])):
+            annotation_token = sample_rec["anns"][j]
+            annotation_metadata =  self.nusc.get("sample_annotation", annotation_token)
+            if annotation_metadata["category_name"] == "vehicle.car" and \
+                annotation_metadata["num_lidar_pts"] > 50:
+                self.annotation_metadata_tokens.update({annotation_metadata['sample_token']: annotation_metadata})
+        # should be function
+
+        while sample_rec["next"] != "":
+            sample_rec = self.nusc.get("sample", sample_rec["next"])
+            ## should be function
+            for j in range(len(sample_rec["anns"])):
+                annotation_token = sample_rec["anns"][j]
+                annotation_metadata =  self.nusc.get("sample_annotation", annotation_token)
+                if annotation_metadata["category_name"] == "vehicle.car" and \
+                    annotation_metadata["num_lidar_pts"] > 50 :
+                    self.annotation_metadata_tokens.update({annotation_metadata['sample_token']: annotation_metadata})
+            ## should be function
 
     def _get_scene_token(self, split_logs: List[str]) -> str:
         """
@@ -135,4 +163,18 @@ class NuScenesDataset:
         while cur_sd_rec["next"] != "":
             cur_sd_rec = self.nusc.get("sample_data", cur_sd_rec["next"])
             sd_tokens.append(cur_sd_rec["token"])
+        return sd_tokens
+
+    def _get_sameple_data(self, scene_token: str) -> List[str]:
+        # Get records from DB.
+        scene_rec = self.nusc.get("scene", scene_token)
+        start_sample_rec = self.nusc.get("sample", scene_rec["first_sample_token"])
+        sd_rec = self.nusc.get("sample_data", start_sample_rec["data"][self.lidar_name])
+
+        # Make list of frames
+        cur_sd_rec = sd_rec
+        sd_tokens = [cur_sd_rec]
+        while cur_sd_rec["next"] != "":
+            cur_sd_rec = self.nusc.get("sample_data", cur_sd_rec["next"])
+            sd_tokens.append(cur_sd_rec)
         return sd_tokens
