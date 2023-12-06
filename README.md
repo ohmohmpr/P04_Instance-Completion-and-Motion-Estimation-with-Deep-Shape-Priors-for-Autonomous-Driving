@@ -94,3 +94,9 @@ scene-1100, Night, peds in sidewalk, peds cross cro... [18-11-21 11:49:47]   19s
 kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/KITTI/00_01.npy --dataloader nuscenes --sequence 0061
 kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/KITTI/00_01.npy --dataloader nuscenes --sequence 0796
 ```
+
+
+```sh
+python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ~/data/sets/nuscenes/
+```
+use sequence of nuscebe to generate ground truth.
