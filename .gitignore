@@ -3,8 +3,8 @@ debug/
 gt/
 result/
 **/.DS_Store
-KISS-ICP/python/kiss_icp/pipeline1.py
-KISS-ICP/python/kiss_icp/tools/visualizer1.py
+deep_sdf/
+deep_sdf_ss/
 results/deep_sdf/mesh/
 dataset
 config
