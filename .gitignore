@@ -3,8 +3,8 @@ debug/
 gt/
 result/
 **/.DS_Store
-deep_sdf/
-deep_sdf_ss/
+DEEP_SDF/
+DEEP_SDF_ss/
 results/deep_sdf/mesh/
 dataset
 config
