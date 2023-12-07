@@ -56,6 +56,9 @@ def draw_scenes(points, gt_boxes=None, ref_boxes=None, ref_labels=None, ref_scor
 
     pts = open3d.geometry.PointCloud()
     pts.points = open3d.utility.Vector3dVector(points[:, :3])
+    # Suppress
+    # [Open3D WARNING] invalid color in PaintUniformColor, clipping to [0, 1]
+    open3d.utility.set_verbosity_level(open3d.utility.VerbosityLevel(0)) # Error 
 
     vis.add_geometry(pts)
     if point_colors is None:
