@@ -92,14 +92,17 @@ def main():
     model.eval()
     with torch.no_grad():
         for idx, data_dict in enumerate(demo_dataset):
+                
             logger.info(f'Visualized sample index: \t{idx + 1}')
             data_dict = demo_dataset.collate_batch([data_dict])
             load_data_to_gpu(data_dict)
             pred_dicts, _ = model.forward(data_dict)
 
+            # if pred_dicts[0]['pred_labels'][idx] == 1: # cfgs/nuscenes_models/cbgs_pp_multihead.yaml
             V.draw_scenes(
                 points=data_dict['points'][:, 1:], ref_boxes=pred_dicts[0]['pred_boxes'],
                 ref_scores=pred_dicts[0]['pred_scores'], ref_labels=pred_dicts[0]['pred_labels']
+                # ref_scores=pred_dicts[0]['pred_scores'], ref_labels=None
             )
 
             if not OPEN3D_FLAG:
