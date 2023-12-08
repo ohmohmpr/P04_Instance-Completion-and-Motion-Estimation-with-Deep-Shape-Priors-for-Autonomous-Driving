@@ -63,6 +63,9 @@ class RegistrationVisualizer(StubVisualizer):
     def __init__(self):
         try:
             self.o3d = importlib.import_module("open3d")
+            # Suppress
+            # [Open3D WARNING] invalid color in PaintUniformColor, clipping to [0, 1]
+            self.o3d.utility.set_verbosity_level(self.o3d.utility.VerbosityLevel(0))
         except ModuleNotFoundError as err:
             print(f'open3d is not installed on your system, run "pip install open3d"')
             exit(1)
@@ -297,28 +300,28 @@ class RegistrationVisualizer(StubVisualizer):
             print("An exception occurred:", error)
 
         # Visual in sensor frame
-        # self.remove_all()
+        self.remove_all()
 
         
         
-        # for id, current_instance in current_instances.items():
+        for id, current_instance in current_instances.items():
             # if current_instance.last_frame == self.frames_ID and current_instance.id in instance_id_list:
             
             
-            # if current_instance.last_frame == self.frames_ID:
-            #     ##################### VISUALIZAION ALL #####################
-            #     color_code = current_instance.color_code
+            if current_instance.last_frame == self.frames_ID:
+                ##################### VISUALIZAION ALL #####################
+                color_code = current_instance.color_code
                 
-            #     if self.global_view:
-            #         bbox = current_instance.g_pose_visuals[current_instance.last_frame]
-            #     else:
-            #         bbox = current_instance.s_pose_visuals[current_instance.last_frame]
+                if self.global_view:
+                    bbox = current_instance.g_pose_visuals[current_instance.last_frame]
+                else:
+                    bbox = current_instance.s_pose_visuals[current_instance.last_frame]
                     
-            #     line_set, box3d = translate_boxes_to_open3d_instance(bbox)
-            #     line_set.paint_uniform_color(color_code)
-            #     self.vis.add_geometry(line_set, reset_bounding_box=False)
-            #     self.visual_instances.append(line_set)
-            #     ##################### VISUALIZAION ALL #####################
+                line_set, box3d = translate_boxes_to_open3d_instance(bbox)
+                line_set.paint_uniform_color(color_code)
+                self.vis.add_geometry(line_set, reset_bounding_box=False)
+                self.visual_instances.append(line_set)
+                ##################### VISUALIZAION ALL #####################
                 
                 
             #     ##################### VISUALIZAION SOME #####################
