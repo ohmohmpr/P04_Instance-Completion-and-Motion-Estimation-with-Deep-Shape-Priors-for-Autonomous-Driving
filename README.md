@@ -57,13 +57,20 @@ scene-1100, Night, peds in sidewalk, peds cross cro... [18-11-21 11:49:47]   19s
 ```
 
 ```sh
-kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/KITTI/00_01.npy --dataloader nuscenes --sequence 0061
+kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0061.npy --dataloader nuscenes --sequence 0061
 kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/KITTI/00_01.npy --dataloader nuscenes --sequence 0796
+```
+
+```txt
+https://github.com/open-mmlab/OpenPCDet/issues/257
+https://github.com/open-mmlab/OpenPCDet/blob/master/docs/DEMO.md
 ```
 
 ```sh
 cd OpenPCDet/tools/
 python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ~/data/sets/nuscenes/
+
+python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ../nuscenes_point/points0.npy  --ext .npy
 ```
 
 use sequence of nuscene to generate ground truth.

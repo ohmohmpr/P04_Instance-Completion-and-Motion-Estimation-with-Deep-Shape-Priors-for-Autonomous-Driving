@@ -90,6 +90,8 @@ def main():
     model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=True)
     model.cuda()
     model.eval()
+    files = "../../results/OpenPCDet_PointRCNN/NuScences/0061"
+    output = {}
     with torch.no_grad():
         for idx, data_dict in enumerate(demo_dataset):
                 
@@ -98,13 +100,28 @@ def main():
             load_data_to_gpu(data_dict)
             pred_dicts, _ = model.forward(data_dict)
 
-            V.draw_scenes(
-                points=data_dict['points'][:, 1:], ref_boxes=pred_dicts[0]['pred_boxes'],
-                ref_scores=pred_dicts[0]['pred_scores'], ref_labels=pred_dicts[0]['pred_labels']
-            )
+            ## Save DATA
+            
+            # Find cars
+            ref_labels = pred_dicts[0]['pred_labels']
+            ref_boxes = pred_dicts[0]['pred_boxes']
+            msk_idx = ref_labels==1
+            msk_ref_boxes = ref_boxes[msk_idx]
+            output[idx] = msk_ref_boxes.cpu().numpy()
+            
+            ## Save DATA
+
+            # V.draw_scenes(
+            #     points=data_dict['points'][:, 1:], ref_boxes=pred_dicts[0]['pred_boxes'],
+            #     ref_scores=pred_dicts[0]['pred_scores'], ref_labels=pred_dicts[0]['pred_labels']
+            # )
 
             if not OPEN3D_FLAG:
                 mlab.show(stop=True)
+
+        ## Save DATA
+        np.save(files, np.array(output, dtype=object), allow_pickle=True)
+        ## Save DATA
 
     logger.info('Demo done.')
 
