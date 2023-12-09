@@ -101,14 +101,14 @@ def main():
             pred_dicts, _ = model.forward(data_dict)
 
             ## Save DATA
-            
-            # Find cars
+
+            ## Find cars
             ref_labels = pred_dicts[0]['pred_labels']
             ref_boxes = pred_dicts[0]['pred_boxes']
             msk_idx = ref_labels==1
             msk_ref_boxes = ref_boxes[msk_idx]
             output[idx] = msk_ref_boxes.cpu().numpy()
-            
+
             ## Save DATA
 
             # V.draw_scenes(

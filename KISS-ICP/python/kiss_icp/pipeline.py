@@ -29,6 +29,7 @@ from typing import List, Optional
 
 import numpy as np
 from pyquaternion import Quaternion
+from scipy.spatial.transform import Rotation as R
 
 from kiss_icp.config import load_config, write_config
 from kiss_icp.kiss_icp import KissICP
@@ -97,11 +98,11 @@ class OdometryPipeline:
     def run(self):
         self._run_pipeline()
         self._run_evaluation()
-        self._create_output_dir()
-        self._write_result_poses()
-        self._write_gt_poses()
-        self._write_cfg()
-        self._write_log()
+        # self._create_output_dir()
+        # self._write_result_poses()
+        # self._write_gt_poses()
+        # self._write_cfg()
+        # self._write_log()
         return self.results
 
     # Private interface  ------
@@ -110,6 +111,37 @@ class OdometryPipeline:
             raw_frame, timestamps = self._next(idx)
             start_time = time.perf_counter_ns()
             source, keypoints = self.odometry.register_frame(raw_frame, timestamps)
+
+            # SAVE points for Nuscences
+            r = R.from_euler('z', 90, degrees=True)
+            mtx = r.as_matrix()
+            mtx = np.hstack((mtx, np.zeros((mtx.shape[0], 1))))
+            mtx = np.vstack((mtx, np.zeros((1, mtx.shape[1]))))
+            mtx[3, 3] = 1
+            
+            source_save_homo = np.hstack((source, np.ones((source.shape[0], 1))))
+            source_transfromed =  source_save_homo @ mtx
+            # print("mtx", mtx)
+            source_save_homo = source_save_homo[:3, :3]
+            source_transfromed = source_transfromed[:3, :3]
+
+            source_save = np.hstack((source_save_homo, np.zeros((source_save_homo.shape[0], 2))))
+            raw_frame_save = np.hstack((raw_frame, np.zeros((raw_frame.shape[0], 1))))
+            original_pcd = np.hstack((raw_frame_save, np.ones((raw_frame.shape[0], 1)) * idx))
+
+            source_save = np.hstack((source_transfromed, np.zeros((source_transfromed.shape[0], 2))))
+            raw_frame_save = np.hstack((raw_frame, np.zeros((raw_frame.shape[0], 1))))
+            transform_pcd = np.hstack((raw_frame_save, np.ones((raw_frame.shape[0], 1)) * idx))
+
+            print("timestamps", np.ones((raw_frame.shape[0], 1)) * idx)
+            print("raw_frame", raw_frame.shape)
+            
+            print("original_pcd\n", original_pcd)
+            print("transform_pcd\n", transform_pcd)
+            np.save(f"data/nuscenes_point/points{idx}.npy", original_pcd)
+            np.save(f"data/nuscenes_point_transformed/points{idx}.npy", transform_pcd)
+            # SAVE points for Nuscences
+
             self.times.append(time.perf_counter_ns() - start_time)
             self.visualizer.update(source, keypoints, self.odometry.local_map, \
                             self.poses[-1], self._bounding_boxes[idx], \

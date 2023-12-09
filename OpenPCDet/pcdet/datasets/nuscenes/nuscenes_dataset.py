@@ -322,7 +322,10 @@ class NuScenesDataset(DatasetTemplate):
             sample_idx = idx
             info = self.infos[idx]
             points = self.get_lidar_with_sweeps(idx, max_sweeps=max_sweeps)
-            # np.save(f"nuscenes_point/points{idx}.npy", points)
+            points[:, 3] = 0 
+            ## SAVE points
+            np.save(f"nuscenes_point/points{idx}.npy", points)
+            ## SAVE points
             gt_boxes = info['gt_boxes']
             gt_names = info['gt_names']
 
