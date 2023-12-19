@@ -1,6 +1,7 @@
 import argparse
 import glob
 from pathlib import Path
+import os
 
 try:
     import open3d
@@ -90,7 +91,10 @@ def main():
     model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=True)
     model.cuda()
     model.eval()
-    files = "../../results/OpenPCDet_PointRCNN/NuScences/0061"
+    files = "../../results/OpenPCDet_PointRCNN/NuScences/manual/1077/"
+    file_name = os.path.basename(args.data_path)
+    file = os.path.splitext(file_name)[0]
+    save_path = f"{files+file}.npy"
     output = {}
     with torch.no_grad():
         for idx, data_dict in enumerate(demo_dataset):
@@ -102,13 +106,12 @@ def main():
 
             ## Save DATA
 
-            ## Find cars
+            # Find cars
             ref_labels = pred_dicts[0]['pred_labels']
             ref_boxes = pred_dicts[0]['pred_boxes']
             msk_idx = ref_labels==1
             msk_ref_boxes = ref_boxes[msk_idx]
             output[idx] = msk_ref_boxes.cpu().numpy()
-
             ## Save DATA
 
             # V.draw_scenes(
@@ -116,11 +119,11 @@ def main():
             #     ref_scores=pred_dicts[0]['pred_scores'], ref_labels=pred_dicts[0]['pred_labels']
             # )
 
-            if not OPEN3D_FLAG:
-                mlab.show(stop=True)
+            # if not OPEN3D_FLAG:
+            #     mlab.show(stop=True)
 
         ## Save DATA
-        np.save(files, np.array(output, dtype=object), allow_pickle=True)
+        np.save(save_path, np.array(output, dtype=object), allow_pickle=True)
         ## Save DATA
 
     logger.info('Demo done.')

@@ -26,8 +26,8 @@ class NuScenesDataset(DatasetTemplate):
         else:
             self.use_camera = False
 
-        self.include_nuscenes_data(self.mode)
-        if self.training and self.dataset_cfg.get('BALANCED_RESAMPLING', False):
+        self.include_nuscenes_data(self.mode)  # DatasetTemplate == train
+        if self.training and self.dataset_cfg.get('BALANCED_RESAMPLING', False): # True
             self.infos = self.balanced_infos_resampling(self.infos)
 
     def include_nuscenes_data(self, mode):
@@ -49,7 +49,7 @@ class NuScenesDataset(DatasetTemplate):
         """
         Class-balanced sampling of nuScenes dataset from https://arxiv.org/abs/1908.09492
         """
-        if self.class_names is None:
+        if self.class_names is None: # None
             return infos
 
         cls_infos = {name: [] for name in self.class_names}
@@ -65,7 +65,6 @@ class NuScenesDataset(DatasetTemplate):
 
         frac = 1.0 / len(self.class_names)
         ratios = [frac / v for v in cls_dist.values()]
-
         for cur_cls_infos, ratio in zip(list(cls_infos.values()), ratios):
             sampled_infos += np.random.choice(
                 cur_cls_infos, int(len(cur_cls_infos) * ratio)
@@ -324,7 +323,31 @@ class NuScenesDataset(DatasetTemplate):
             points = self.get_lidar_with_sweeps(idx, max_sweeps=max_sweeps)
             points[:, 3] = 0 
             ## SAVE points
-            np.save(f"nuscenes_point/points{idx}.npy", points)
+            # i_0 = 0 + 10 * idx
+            # i_1 = 1 + 10 * idx
+            # i_2 = 2 + 10 * idx
+            # i_3 = 3 + 10 * idx
+            # i_4 = 4 + 10 * idx
+            
+            # i_5 = 5 + 10 * idx
+            # i_6 = 6 + 10 * idx
+            # i_7 = 7 + 10 * idx
+            # i_8 = 8 + 10 * idx
+            # i_9 = 9 + 10 * idx
+
+            # np.save(f"nuscenes_point/0061/points{i_0}.npy", points)
+            # np.save(f"nuscenes_point/0061/points{i_1}.npy", points)
+            # np.save(f"nuscenes_point/0061/points{i_2}.npy", points)
+            # np.save(f"nuscenes_point/0061/points{i_3}.npy", points)
+            # np.save(f"nuscenes_point/0061/points{i_4}.npy", points)
+
+            # np.save(f"nuscenes_point/0061/points{i_5}.npy", points)
+            # np.save(f"nuscenes_point/0061/points{i_6}.npy", points)
+            # np.save(f"nuscenes_point/0061/points{i_7}.npy", points)
+            # np.save(f"nuscenes_point/0061/points{i_8}.npy", points)
+            # np.save(f"nuscenes_point/0061/points{i_9}.npy", points)
+
+            np.save(f"nuscenes_point/0757_sweep/points{idx}.npy", points)
             ## SAVE points
             gt_boxes = info['gt_boxes']
             gt_names = info['gt_names']
@@ -422,13 +445,13 @@ if __name__ == '__main__':
         dataset_cfg = EasyDict(yaml.safe_load(open(args.cfg_file)))
         ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
         dataset_cfg.VERSION = args.version
-        # create_nuscenes_info(
-        #     version=dataset_cfg.VERSION,
-        #     data_path=ROOT_DIR / 'data' / 'nuscenes',
-        #     save_path=ROOT_DIR / 'data' / 'nuscenes',
-        #     max_sweeps=dataset_cfg.MAX_SWEEPS,
-        #     with_cam=args.with_cam
-        # )
+        create_nuscenes_info(
+            version=dataset_cfg.VERSION,
+            data_path=ROOT_DIR / 'data' / 'nuscenes',
+            save_path=ROOT_DIR / 'data' / 'nuscenes',
+            max_sweeps=dataset_cfg.MAX_SWEEPS,
+            with_cam=args.with_cam
+        )
 
         nuscenes_dataset = NuScenesDataset(
             dataset_cfg=dataset_cfg, class_names=None,

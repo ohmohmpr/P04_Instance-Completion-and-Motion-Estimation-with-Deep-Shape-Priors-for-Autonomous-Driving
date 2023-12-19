@@ -18,15 +18,9 @@ pip3 install nuscenes-devkit==1.0.5 # https://github.com/open-mmlab/OpenPCDet/bl
 2. Ubuntu with CUDA
 [CUDA installation](www.google.com)
 
-
-
-
-
-
-
 ## Installtion package.
 1. Run OpenPCDet to generate tranformation matrix(RENAME later).
-2. Install KISS-ICP 
+2. Install KISS-ICP
 
 ```sh
 cd KISS-ICP/python
@@ -57,8 +51,35 @@ scene-1100, Night, peds in sidewalk, peds cross cro... [18-11-21 11:49:47]   19s
 ```
 
 ```sh
-kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0061.npy --dataloader nuscenes --sequence 0061
-kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/KITTI/00_01.npy --dataloader nuscenes --sequence 0796
+kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0061-new-new.npy --dataloader nuscenes --sequence 0061 # 
+kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0655-new-new.npy --dataloader nuscenes --sequence 0553 # useless
+kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0655-new-new.npy --dataloader nuscenes --sequence 0655 # too slow cause many cars.
+kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0757-new-new.npy --dataloader nuscenes --sequence 0757 # pretty good
+kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0796-new-new.npy --dataloader nuscenes --sequence 0796 # pretty fast and interesting gt at the end of seq.
+kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/1077-new-new.npy --dataloader nuscenes --sequence 1077 # hard to tell
+kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/1094-new-new.npy --dataloader nuscenes --sequence 1094 # too many cars and no moving
+kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/1100-new-new.npy --dataloader nuscenes --sequence 1100 # might be interesting at the end of seq.
+```
+
+```sh
+python3 -m pcdet.datasets.nuscenes.nuscenes_dataset --func create_nuscenes_infos \
+    --cfg_file tools/cfgs/dataset_configs/nuscenes_dataset.yaml \
+    --version v1.0-trainval
+python3 -m pcdet.datasets.nuscenes.nuscenes_dataset --func create_nuscenes_infos \
+    --cfg_file tools/cfgs/dataset_configs/nuscenes_dataset.yaml \
+    --version v1.0-mini
+
+python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ../nuscenes_point/0061_sweep/points0.npy --ext .npy
+
+# cbgs_pp_multihead
+python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ../nuscenes_point/0061_sweep/points11.npy --ext .npy
+
+# cbgs_pp_multihead - good
+python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_second_multihead.yaml --ckpt weight/nuscenes/cbgs_second_multihead_nds6229_updated.pth --data_path ../nuscenes_point/0061_sweep/points38.npy --ext .npy
+
+python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_second_multihead.yaml --ckpt weight/nuscenes/cbgs_second_multihead_nds6229_updated.pth --data_path ../../data/nuscenes_point/0061/points230.npy --ext .npy
+
+
 ```
 
 ```txt
@@ -68,13 +89,18 @@ https://github.com/open-mmlab/OpenPCDet/blob/master/docs/DEMO.md
 
 ```sh
 cd OpenPCDet/tools/
-python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ~/data/sets/nuscenes/
+# GROUND TRUTH
+python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ../nuscenes_point/ --ext .npy
 
-python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ../nuscenes_point/points0.npy  --ext .npy
+# detected 
+python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ../../data/nuscenes_point/0061/points0.npy  --ext .npy
+python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ../../data/nuscenes_point/0757/ --ext .npy
+
+## use kitti for nuscenes
+python3 demo.py --cfg_file cfgs/kitti_models/pv_rcnn.yaml --ckpt weight/kitti/pv_rcnn_8369.pth --data_path ../../data/nuscenes_point_as_kitti_format/0061/points0.npy --ext .npy
 ```
 
 use sequence of nuscene to generate ground truth.
-
 
 ### IPB
 
