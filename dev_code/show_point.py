@@ -4,7 +4,7 @@ import copy
 
 # 2D and 3D detection and data association
 def main():
-    points = np.load("OpenPCDet/nuscenes_point/0000/points202.npy")
+    points = np.load("OpenPCDet/nuscenes_point/0061_sweep/points20.npy")
     # print("points", points)
     # Visualize results
     vis = o3d.visualization.Visualizer()
