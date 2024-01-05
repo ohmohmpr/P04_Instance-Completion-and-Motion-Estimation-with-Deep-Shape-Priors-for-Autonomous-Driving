@@ -73,15 +73,6 @@ class OdometryPipeline:
         self.poses = self.odometry.poses
         self.has_gt = hasattr(self._dataset, "gt_poses")
         self.gt_poses = self._dataset.gt_poses[self._first : self._last] if self.has_gt else None
-        ## nuScene
-        if self.has_gt:
-            self.first_pose = self._dataset.first_pose
-            self.sd_tokens = self._dataset.sd_tokens
-            self.annotation_metadata_tokens = self._dataset.annotation_metadata_tokens
-        else: 
-            self.sd_tokens = None
-            self.annotation_metadata_tokens = None
-        ## nuScene
         self.dataset_name = self._dataset.__class__.__name__
         self.dataset_sequence = (
             self._dataset.sequence_id
@@ -112,39 +103,9 @@ class OdometryPipeline:
             start_time = time.perf_counter_ns()
             source, keypoints = self.odometry.register_frame(raw_frame, timestamps)
 
-            # SAVE points for Nuscences
-            # r = R.from_euler('z', 90, degrees=True)
-            # mtx = r.as_matrix()
-            # mtx = np.hstack((mtx, np.zeros((mtx.shape[0], 1))))
-            # mtx = np.vstack((mtx, np.zeros((1, mtx.shape[1]))))
-            # mtx[3, 3] = 1
-            
-            # source_save_homo = np.hstack((source, np.ones((source.shape[0], 1))))
-            # source_transfromed =  source_save_homo @ mtx
-            # # print("mtx", mtx)
-            # source_save_homo = source_save_homo[:, :3]
-            # source_transfromed = source_transfromed[:, :3]
-
-            # source_save = np.hstack((source_save_homo, np.zeros((source_save_homo.shape[0], 1))))
-            # original_pcd = np.hstack((source_transfromed, np.ones((source_transfromed.shape[0], 1)) * idx))
-
-            # source_save = np.hstack((source_transfromed, np.zeros((source_transfromed.shape[0], 1))))
-            # transform_pcd = np.hstack((source_save, np.ones((source_save.shape[0], 1)) * idx))
-
-            # print("timestamps", np.ones((raw_frame.shape[0], 1)) * idx)
-            # print("raw_frame", raw_frame.shape)
-            
-            # print("original_pcd\n", original_pcd)
-            # print("transform_pcd\n", transform_pcd)
-            # np.save(f"data/nuscenes_point_as_kitti_format/0061/points{idx}.npy", original_pcd)
-            # np.save(f"data/nuscenes_point_transformed/points{idx}.npy", transform_pcd)
-            # SAVE points for Nuscences
-
             self.times.append(time.perf_counter_ns() - start_time)
             self.visualizer.update(source, keypoints, self.odometry.local_map, \
-                            self.poses[-1], self._bounding_boxes[idx], \
-                            self.sd_tokens[idx], self.annotation_metadata_tokens, \
-                            self.first_pose, self.gt_poses[idx])
+                            self.poses[-1], self._bounding_boxes[idx])
 
     def _next(self, idx):
         """TODO: re-arrange this logic"""

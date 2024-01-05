@@ -31,35 +31,32 @@ pip install --verbose .
 
 ### DELL_G15 - ohm - CURRENT PLATFORM
 
-working mainly on nuscene datasets
+working mainly on Argoverse2 datasets
 
 ```sh
 pip3 uninstall kiss-icp -y && pip3 install --verbose KISS-ICP/python
 ```
 
-```txt
-scene-0061, Parked truck, construction, intersectio... [18-07-24 03:28:47]   19s, singapore-onenorth, #anns:4622
-scene-0103, Many peds right, wait for turning car, ... [18-08-01 19:26:43]   19s, boston-seaport, #anns:2046
-scene-0655, Parking lot, parked cars, jaywalker, be... [18-08-27 15:51:32]   20s, boston-seaport, #anns:2332
-scene-0553, Wait at intersection, bicycle, large tr... [18-08-28 20:48:16]   20s, boston-seaport, #anns:1950
-scene-0757, Arrive at busy intersection, bus, wait ... [18-08-30 19:25:08]   20s, boston-seaport, #anns:592
-scene-0796, Scooter, peds on sidewalk, bus, cars, t... [18-10-02 02:52:24]   20s, singapore-queensto, #anns:708
-scene-0916, Parking lot, bicycle rack, parked bicyc... [18-10-08 07:37:13]   20s, singapore-queensto, #anns:2387
-scene-1077, Night, big street, bus stop, high speed... [18-11-21 11:39:27]   20s, singapore-hollandv, #anns:890
-scene-1094, Night, after rain, many peds, PMD, ped ... [18-11-21 11:47:27]   19s, singapore-hollandv, #anns:1762
-scene-1100, Night, peds in sidewalk, peds cross cro... [18-11-21 11:49:47]   19s, singapore-hollandv, #anns:935
+
+Test on KITTI
+```sh
+kiss_icp_pipeline --visualize ~/data/kiss-icp/KITTI/00/velodyne results/OpenPCDet_PointRCNN/KITTI/00_01.npy
+kiss_icp_pipeline --visualize ~/data/kiss-icp/KITTI/04/velodyne results/OpenPCDet_PointRCNN/KITTI/04_01.npy
+kiss_icp_pipeline --visualize ~/data/kiss-icp/KITTI/07/velodyne results/OpenPCDet_PointRCNN/KITTI/07_01.npy
+kiss_icp_pipeline --visualize ~/data/kiss-icp/KITTI/20/velodyne results/OpenPCDet_PointRCNN/KITTI/20_01.npy # highway
+kiss_icp_pipeline --visualize ~/data/kiss-icp/KITTI/21/velodyne results/OpenPCDet_PointRCNN/KITTI/21_01.npy # highway
 ```
 
+Test on Argoverse2
+
 ```sh
-kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0061-new-new.npy --dataloader nuscenes --sequence 0061 # 
-kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0655-new-new.npy --dataloader nuscenes --sequence 0553 # useless
-kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0655-new-new.npy --dataloader nuscenes --sequence 0655 # too slow cause many cars.
-kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0757-new-new.npy --dataloader nuscenes --sequence 0757 # pretty good
-kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/0796-new-new.npy --dataloader nuscenes --sequence 0796 # pretty fast and interesting gt at the end of seq.
-kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/1077-new-new.npy --dataloader nuscenes --sequence 1077 # hard to tell
-kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/1094-new-new.npy --dataloader nuscenes --sequence 1094 # too many cars and no moving
-kiss_icp_pipeline --visualize ~/data/sets/nuscenes/ results/OpenPCDet_PointRCNN/NuScences/1100-new-new.npy --dataloader nuscenes --sequence 1100 # might be interesting at the end of seq.
+kiss_icp_pipeline --visualize ~/data/kiss-icp/KITTI/00/velodyne results/OpenPCDet_PointRCNN/KITTI/00_01.npy
+kiss_icp_pipeline --visualize ~/data/kiss-icp/KITTI/04/velodyne results/OpenPCDet_PointRCNN/KITTI/04_01.npy
+kiss_icp_pipeline --visualize ~/data/kiss-icp/KITTI/07/velodyne results/OpenPCDet_PointRCNN/KITTI/07_01.npy
+kiss_icp_pipeline --visualize ~/data/kiss-icp/KITTI/20/velodyne results/OpenPCDet_PointRCNN/KITTI/20_01.npy # highway
+kiss_icp_pipeline --visualize ~/data/kiss-icp/KITTI/21/velodyne results/OpenPCDet_PointRCNN/KITTI/21_01.npy # highway
 ```
+
 
 ```sh
 python3 -m pcdet.datasets.nuscenes.nuscenes_dataset --func create_nuscenes_infos \
