@@ -76,6 +76,20 @@ python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt we
 
 |seq|results|remark|
 |--|--|--|
+|00| less interesting| no tracking car|
+|01|interesting| one or two opposite direction cars|
+|02|interesting| one or two opposite direction cars|
+|03|less interesting| one moving car but couldn't track over time|
+|04| less interesting| one moving car but couldn't track over time|
+|05|interesting| lot of cars|
+|06| less interesting| lots of car but cannot track over time|
+|07|interesting| one or two opposite direction cars|
+|08| less interesting| lots of car but cannot track over time|
+|09|interesting| lot of oppsosite direction cars|
+|10|interesting| one moving cars|
+|11| less interesting| ego-car park at an intersection and orthogonal direction car|
+|12|interesting| lot of oppsosite direction cars|
+|13|interesiting| two or three moving cars|
 |14|no moving car||
 |15|one leading car||
 |16|one leading car|use this and remove humans and check ground truth|
