@@ -6,6 +6,7 @@ result/
 DEEP_SDF/
 DEEP_SDF_ss/
 results/deep_sdf/mesh/
+results/pcd_argo
 dataset
 config
 # Created by https://www.toptal.com/developers/gitignore/api/python,c++
