@@ -38,7 +38,8 @@ class DemoDataset(DatasetTemplate):
         self.ext = ext
         data_file_list = glob.glob(str(root_path / f'*{self.ext}')) if self.root_path.is_dir() else [self.root_path]
 
-        data_file_list.sort()
+        # data_file_list.sort()
+        data_file_list = sorted(data_file_list, key=lambda x: int(Path(x).stem)) # sorted by int
         self.sample_file_list = data_file_list
 
     def __len__(self):
@@ -91,11 +92,18 @@ def main():
     model.load_params_from_file(filename=args.ckpt, logger=logger, to_cpu=True)
     model.cuda()
     model.eval()
-    
-    # files = "../../results/OpenPCDet_PointRCNN/NuScences/manual/1077/"
-    # file_name = os.path.basename(args.data_path)
-    # file = os.path.splitext(file_name)[0]
-    # save_path = f"{files+file}.npy"
+
+    #Argoverse2
+    output_dir = "../../results/OpenPCDet_PointRCNN/"
+    datasets = "Argoverse2"
+    sequence = Path(args.data_path).stem
+    result_dir = Path(output_dir) / datasets
+    result_path = Path(result_dir) / sequence
+
+    if not result_dir.exists():
+        result_dir.mkdir(parents=True, exist_ok=True)
+    #Argoverse2
+
     output = {}
     with torch.no_grad():
         for idx, data_dict in enumerate(demo_dataset):
@@ -106,26 +114,21 @@ def main():
             pred_dicts, _ = model.forward(data_dict)
 
             ## Save DATA
-
-            # Find cars
-            # ref_labels = pred_dicts[0]['pred_labels']
-            # ref_boxes = pred_dicts[0]['pred_boxes']
-            # msk_idx = ref_labels==1
-            # msk_ref_boxes = ref_boxes[msk_idx]
-            # output[idx] = msk_ref_boxes.cpu().numpy()
+            ref_boxes = pred_dicts[0]['pred_boxes']
+            output[idx] = ref_boxes.cpu().numpy()
             ## Save DATA
 
-            V.draw_scenes(
-                points=data_dict['points'][:, 1:], ref_boxes=pred_dicts[0]['pred_boxes'],
-                ref_scores=pred_dicts[0]['pred_scores'], ref_labels=pred_dicts[0]['pred_labels']
-            )
+            # V.draw_scenes(
+            #     points=data_dict['points'][:, 1:], ref_boxes=pred_dicts[0]['pred_boxes'],
+            #     ref_scores=pred_dicts[0]['pred_scores'], ref_labels=pred_dicts[0]['pred_labels']
+            # )
 
             # if not OPEN3D_FLAG:
             #     mlab.show(stop=True)
 
-        ## Save DATA
-        # np.save(save_path, np.array(output, dtype=object), allow_pickle=True)
-        ## Save DATA
+        # Save DATA
+        np.save(result_path, np.array(output, dtype=object), allow_pickle=True)
+        # Save DATA
 
     logger.info('Demo done.')
 

@@ -65,6 +65,7 @@ class Argoverse2Dataset:
     def get_pcd_intensity(self, idx):
         '''
         For 3D detection
+        it should be a save function
         '''
         pcd = self.__getitem__(idx)
         intensity = self.get_intensity(idx) / 255
