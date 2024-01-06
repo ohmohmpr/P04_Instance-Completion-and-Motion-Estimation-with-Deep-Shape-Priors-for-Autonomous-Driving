@@ -56,6 +56,7 @@ bash ../sandbox/argoverse/av2-api/conda/install.sh
 ```
 
 ```sh
+conda activate av2
 kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/KITTI/00_01.npy --dataloader argoverse2 --sequence 000000 # argoverse
 kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/KITTI/00_01.npy --dataloader argoverse2 --sequence 000013
 ```
@@ -63,6 +64,7 @@ kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/K
 3D detection
 
 ```sh
+conda activate msr_p
 cd OpenPCDet/tools/
 python3 demo.py --cfg_file cfgs/kitti_models/pv_rcnn.yaml --ckpt weight/kitti/pv_rcnn_8369.pth --data_path ../../results/pcd_argo/000012/ --ext .npy
 python3 demo.py --cfg_file cfgs/kitti_models/pv_rcnn.yaml --ckpt weight/kitti/pv_rcnn_8369.pth --data_path ../../results/pcd_argo/000012/0.npy --ext .npy
