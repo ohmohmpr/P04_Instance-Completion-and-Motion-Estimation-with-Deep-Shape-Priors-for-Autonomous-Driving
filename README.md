@@ -64,15 +64,56 @@ kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/K
 3D detection
 
 ```sh
+python setup.py develop
 conda activate msr_p
 cd OpenPCDet/tools/
 python3 demo.py --cfg_file cfgs/kitti_models/pv_rcnn.yaml --ckpt weight/kitti/pv_rcnn_8369.pth --data_path ../../results/pcd_argo/000012/ --ext .npy
 python3 demo.py --cfg_file cfgs/kitti_models/pv_rcnn.yaml --ckpt weight/kitti/pv_rcnn_8369.pth --data_path ../../results/pcd_argo/000012/0.npy --ext .npy
 
 
-
 python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ../../results/pcd_argo/000012/ --ext .npy # number of col ->> failed
 ```
+
+|seq|results|remark|
+|--|--|--|
+|14|no moving car||
+|15|one leading car||
+|16|one leading car|use this and remove humans and check ground truth|
+|17|no inrestering leading car| opposite direct car|
+|18|nothing interesting| |
+|19|nothing interesting| ego-car tunrs left|
+|20|nothing interesting| opposite direct car|
+|20|opposite direct car| |
+|21|detected car turns| |
+|22|nothing interesting| |
+|23|nothing interesting| one car turns at an intersection |
+|24|nothing interesting| |
+|25|nothing interesting| no moving car here|
+|26|interesting| this is a good example of how bbox are bad|
+|27|nothing interesting| |
+|28|interesting one leading box| it fail on the car|
+|29|at the end of seq| it fail on the car|
+|30|nothing interesting| |
+|31|interesting | lot of cars |
+|32|interesting | lot of cars |
+|33|interesting | lot of cars |
+|34|interesting | lot of cars |
+|35|interesting | less interesting |
+|36|cloud be interesting | parking cars |
+|37|intersing  | but deteciton failed |
+|38|less intersing  | parking cars for this is a good example of how bbox are bad |
+|39|interesting  | good |
+|40|no cars in this scene  | bad |
+|41|interesting  | parking at intersection  a good example of how bbox are bad|
+|42| less interesting  | parking cars |
+|43| interesting  | like silom road |
+|44| less interesting  | at the end of seq |
+|45| interesting  | lots of cars |
+|46| interesting  | lots of cars |
+|47| interesting  | lots of cars but they are parking cars |
+|48| interesting  | no moving cars in the first half adn moving in the second half, 3D detection couldn't detect the turning cars. |
+|49| very interesting  | lots of cars |
+
 
 
 ### IPB

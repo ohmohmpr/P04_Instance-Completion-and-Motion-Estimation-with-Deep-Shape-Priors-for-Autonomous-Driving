@@ -110,7 +110,7 @@ class OdometryPipeline:
     def _next(self, idx):
         """TODO: re-arrange this logic"""
         dataframe = self._dataset[idx]
-        # self._dataset.get_pcd_intensity(idx)
+        self._dataset.get_pcd_intensity(idx)
         try:
             frame, timestamps = dataframe
         except ValueError:
