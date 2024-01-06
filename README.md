@@ -48,6 +48,7 @@ kiss_icp_pipeline --visualize ~/data/kiss-icp/KITTI/21/velodyne results/OpenPCDe
 ```
 
 Test on Argoverse2
+
 ```bash
 bash ../sandbox/argoverse/av2-api/conda/install.sh
 ```
@@ -57,16 +58,13 @@ kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/K
 kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/KITTI/00_01.npy --dataloader argoverse2 --sequence 000013
 ```
 
+3D detection
 
 ```sh
-python3 -m pcdet.datasets.nuscenes.nuscenes_dataset --func create_nuscenes_infos \
-    --cfg_file tools/cfgs/dataset_configs/nuscenes_dataset.yaml \
-    --version v1.0-trainval
-python3 -m pcdet.datasets.nuscenes.nuscenes_dataset --func create_nuscenes_infos \
-    --cfg_file tools/cfgs/dataset_configs/nuscenes_dataset.yaml \
-    --version v1.0-mini
-
 python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ../nuscenes_point/0061_sweep/points0.npy --ext .npy
+```
+
+```sh
 
 # cbgs_pp_multihead
 python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ../nuscenes_point/0061_sweep/points11.npy --ext .npy
@@ -75,8 +73,6 @@ python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt we
 python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_second_multihead.yaml --ckpt weight/nuscenes/cbgs_second_multihead_nds6229_updated.pth --data_path ../nuscenes_point/0061_sweep/points38.npy --ext .npy
 
 python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_second_multihead.yaml --ckpt weight/nuscenes/cbgs_second_multihead_nds6229_updated.pth --data_path ../../data/nuscenes_point/0061/points230.npy --ext .npy
-
-
 ```
 
 ```txt

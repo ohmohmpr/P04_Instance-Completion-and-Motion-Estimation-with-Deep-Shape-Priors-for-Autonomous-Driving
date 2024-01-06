@@ -57,3 +57,20 @@ class Argoverse2Dataset:
     def __getitem__(self, idx):
         new_idx =  mapping[self.sequence_id]["start"] + idx
         return self._dataset[new_idx].sweep.xyz
+
+    def get_intensity(self, idx):
+        new_idx =  mapping[self.sequence_id]["start"] + idx
+        return self._dataset[new_idx].sweep.intensity
+
+    def get_pcd_intensity(self, idx):
+        '''
+        For 3D detection
+        '''
+        pcd = self.__getitem__(idx)
+        intensity = self.get_intensity(idx) / 255
+        pcd_intensity = np.hstack((pcd, intensity[..., np.newaxis]))
+        output_dir = Path.cwd()
+        result_dir = Path(output_dir) / 'results' / 'pcd_argo' / self.sequence_id
+        if not result_dir.exists():
+            result_dir.mkdir(parents=True, exist_ok=True)
+        np.save(f"{result_dir}/{idx}.npy", pcd_intensity)
