@@ -61,6 +61,7 @@ class OdometryPipeline:
 
         # Bounding boxes == Dictionary
         self._bounding_boxes = np.load(bounding_boxes, allow_pickle='TRUE').item()
+        self._dataset.load_annotations()
 
         # Config and output dir
         self.config = load_config(config, deskew=deskew, max_range=max_range)
@@ -105,12 +106,11 @@ class OdometryPipeline:
 
             self.times.append(time.perf_counter_ns() - start_time)
             self.visualizer.update(source, keypoints, self.odometry.local_map, \
-                            self.poses[-1], self._bounding_boxes[idx])
+                            self.poses[-1], self._bounding_boxes[idx], self._dataset.annotations[idx])
 
     def _next(self, idx):
         """TODO: re-arrange this logic"""
         dataframe = self._dataset[idx]
-        # self._dataset.get_pcd_intensity(idx)
         try:
             frame, timestamps = dataframe
         except ValueError:

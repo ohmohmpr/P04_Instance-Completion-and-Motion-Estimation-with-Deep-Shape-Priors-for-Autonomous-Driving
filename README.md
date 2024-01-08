@@ -57,8 +57,8 @@ bash ../sandbox/argoverse/av2-api/conda/install.sh
 
 ```sh
 conda activate av2
-kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/KITTI/00_01.npy --dataloader argoverse2 --sequence 000000 # argoverse
-kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/KITTI/00_01.npy --dataloader argoverse2 --sequence 000013
+kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/000000.npy --dataloader argoverse2 --sequence 000000
+kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/000013.npy --dataloader argoverse2 --sequence 000013
 ```
 
 3D detection
@@ -128,7 +128,7 @@ python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt we
 |48| interesting  | no moving cars in the first half adn moving in the second half, 3D detection couldn't detect the turning cars. |
 |49| very interesting  | lots of cars |
 
-
+Not sure how to get correctly ground truth
 
 ### IPB
 

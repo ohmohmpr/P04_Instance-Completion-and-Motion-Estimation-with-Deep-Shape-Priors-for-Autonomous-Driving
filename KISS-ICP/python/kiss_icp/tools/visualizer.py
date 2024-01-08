@@ -106,9 +106,9 @@ class RegistrationVisualizer(StubVisualizer):
             self.render_source,
         )
 
-    def update(self, source, keypoints, target_map, pose, bboxes):
+    def update(self, source, keypoints, target_map, pose, bboxes, annotations):
         target = target_map.point_cloud()
-        self._update_geometries(source, keypoints, target, pose, bboxes)
+        self._update_geometries(source, keypoints, target, pose, bboxes, annotations)
         while self.block_vis:
             self.vis.poll_events()
             self.vis.update_renderer()
@@ -219,7 +219,7 @@ class RegistrationVisualizer(StubVisualizer):
             for frame in self.frames:
                 self.vis.remove_geometry(frame, reset_bounding_box=False)
 
-    def _update_geometries(self, source, keypoints, target, pose, bboxes):
+    def _update_geometries(self, source, keypoints, target, pose, bboxes, annotations):
         # Source hot frame
         if self.render_source:
             self.source.points = self.o3d.utility.Vector3dVector(source)
