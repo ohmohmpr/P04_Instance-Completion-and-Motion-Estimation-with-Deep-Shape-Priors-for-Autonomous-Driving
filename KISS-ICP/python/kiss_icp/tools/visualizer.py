@@ -124,7 +124,8 @@ class RegistrationVisualizer(StubVisualizer):
         self.vis.add_geometry(self.keypoints)
         self.vis.add_geometry(self.target)
         self._set_black_background(self.vis)
-        self.vis.get_render_option().point_size = 1
+        self.vis.get_render_option().point_size = 2
+        self.vis.get_render_option().line_width = 20 # THIS DOES NOT WORK
         for i in range(4000):
             self.output_pcd_s[i] = {}
         print(
@@ -267,6 +268,18 @@ class RegistrationVisualizer(StubVisualizer):
 
         self.InstanceAssociation.update(ego_car_pose, boundingBoxes3D, self.frames_ID)
         current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 3)
+
+        self.remove_gt()
+        
+        for annotation in annotations:
+            bbox = BoundingBox3D(annotation.dst_SE3_object.translation[0], annotation.dst_SE3_object.translation[1],
+                    annotation.dst_SE3_object.translation[2], annotation.length_m, 
+                    annotation.width_m,annotation.height_m,
+                    annotation.dst_SE3_object.rotation)
+            line_set, box3d = translate_boxes_to_open3d_instance(bbox)
+            line_set.paint_uniform_color((1, 0, 0))
+            self.vis.add_geometry(line_set, reset_bounding_box=False)
+            self.visual_instances_gt.append(line_set)
 
         # Visual in sensor frame
         self.remove_all()
