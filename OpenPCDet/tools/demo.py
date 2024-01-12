@@ -97,7 +97,9 @@ def main():
     output_dir = "../../results/OpenPCDet_PointRCNN/"
     datasets = "Argoverse2"
     sequence = Path(args.data_path).stem
-    result_dir = Path(output_dir) / datasets
+    part_int = int(int(sequence)/1000)
+    part_str = str(part_int).zfill(3)
+    result_dir = Path(output_dir) / datasets / part_str
     result_path = Path(result_dir) / sequence
 
     if not result_dir.exists():

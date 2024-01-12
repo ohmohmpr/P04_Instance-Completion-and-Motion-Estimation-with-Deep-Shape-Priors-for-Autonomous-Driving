@@ -43,13 +43,14 @@ class Argoverse2Dataset:
             print('run "pip install av2-devkit"')
             sys.exit(1)
 
+        self.part_id = str(int(sequence / 1000)).zfill(3)
+        self.sequence_id = self.part_id + str(int(sequence % 1000)).zfill(3)
+        self.scans_dir = Path.absolute(data_dir) / f"train-{self.part_id}"
         self._dataset = SensorDataloader(
-            data_dir,
+            self.scans_dir,
             with_annotations=True,
             with_cache=True,
         )
-        self.sequence_id = str(sequence).zfill(6)
-        self.scans_dir = os.path.join(os.path.realpath(data_dir), "")
         self.annotations = dict()
         self.load_annotations() 
 
@@ -77,7 +78,7 @@ class Argoverse2Dataset:
         intensity = self.get_intensity(idx) / 255
         pcd_intensity = np.hstack((pcd, intensity[..., np.newaxis]))
         output_dir = Path.cwd()
-        result_dir = Path(output_dir) / 'results' / 'pcd_argo' / self.sequence_id
+        result_dir = Path(output_dir) / 'results' / 'pcd_argo' / self.part_id / self.sequence_id
         if not result_dir.exists():
             result_dir.mkdir(parents=True, exist_ok=True)
         np.save(f"{result_dir}/{idx}.npy", pcd_intensity)
@@ -95,6 +96,7 @@ class Argoverse2Dataset:
     def get_annotations(self):
         num_sweeps = self.__len__()
         self.annotations = dict()
+        print("Processing Ground truth")
         for i in range(num_sweeps):
             self.annotations[i] = self.get_annotation(i)
             print("Processing IDX", i)
@@ -103,19 +105,18 @@ class Argoverse2Dataset:
 
     def load_annotations(self):
         output_dir = Path.cwd()
-        result_dir = Path(output_dir) / 'results_gt' / 'gt' / 'Argoverse2'
+        result_dir = Path(output_dir) / 'results_gt' / 'gt' / 'Argoverse2' / self.part_id
         annotations_path = Path(result_dir) / f"{self.sequence_id}.npy"
         is_found = annotations_path.exists()
         if is_found:
             self.annotations = np.load(annotations_path, allow_pickle='TRUE').item()
         else:
-            print("Annotation not found")
+            print("Annotation not found", annotations_path)
             self.get_annotations()
-
 
     def save_annotations(self, annotations):
         output_dir = Path.cwd()
-        result_dir = Path(output_dir) / 'results_gt' / 'gt' / 'Argoverse2'
+        result_dir = Path(output_dir) / 'results_gt' / 'gt' / 'Argoverse2' / self.part_id
         if not result_dir.exists():
             result_dir.mkdir(parents=True, exist_ok=True)
         np.save(f"{result_dir}/{self.sequence_id}.npy", annotations)

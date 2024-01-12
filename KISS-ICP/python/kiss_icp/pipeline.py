@@ -106,11 +106,14 @@ class OdometryPipeline:
 
             self.times.append(time.perf_counter_ns() - start_time)
             self.visualizer.update(source, keypoints, self.odometry.local_map, \
-                            self.poses[-1], self._bounding_boxes[idx], self._dataset.annotations[idx])
+                            self.poses[-1], self._bounding_boxes[idx], \
+                            self._dataset.annotations[idx])
 
     def _next(self, idx):
         """TODO: re-arrange this logic"""
         dataframe = self._dataset[idx]
+        # self._dataset.get_pcd_intensity(idx)
+        # print("get_timestamp_ns", self._dataset.get_timestamp_ns(idx))
         try:
             frame, timestamps = dataframe
         except ValueError:

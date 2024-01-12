@@ -60,8 +60,12 @@ and add groud truth pose.
 
 ```sh
 conda activate av2
-kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/000000.npy --dataloader argoverse2 --sequence 000000
+
 kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/000013.npy --dataloader argoverse2 --sequence 000013
+
+kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/001/000000.npy --dataloader argoverse2 --sequence 001000 # 1. extract point cloud first 
+kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/001/001000.npy --dataloader argoverse2 --sequence 001000 # 3. show results
+
 ```
 
 3D detection
@@ -70,8 +74,7 @@ kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/A
 python setup.py develop
 conda activate msr_p
 cd OpenPCDet/tools/
-python3 demo.py --cfg_file cfgs/kitti_models/pv_rcnn.yaml --ckpt weight/kitti/pv_rcnn_8369.pth --data_path ../../results/pcd_argo/000012/ --ext .npy
-python3 demo.py --cfg_file cfgs/kitti_models/pv_rcnn.yaml --ckpt weight/kitti/pv_rcnn_8369.pth --data_path ../../results/pcd_argo/000012/0.npy --ext .npy
+python3 demo.py --cfg_file cfgs/kitti_models/pv_rcnn.yaml --ckpt weight/kitti/pv_rcnn_8369.pth --data_path ../../results/pcd_argo/001/001000/ --ext .npy # 2. run detection
 
 
 python3 demo.py --cfg_file cfgs/nuscenes_models/cbgs_pp_multihead.yaml --ckpt weight/nuscenes/pp_multihead_nds5823_updated.pth --data_path ../../results/pcd_argo/000012/ --ext .npy # number of col ->> failed

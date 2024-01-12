@@ -249,6 +249,31 @@ mapping = {
         "start": 7669,
         "end": 7824,
     },
+    "001000": {
+        "log_id": "1a4e2d86-23d4-3a0d-a9ac-8b0936ae94ce",
+        "start": 0,
+        "end": 156,
+    },
+    "001001": {
+        "log_id": "1a7e18b5-d8dc-371d-be5f-03a37b113e81",
+        "start": 157,
+        "end": 313,
+    },
+    "001002": {
+        "log_id": "1a10b0e6-569f-32db-95e8-10c074e353e8",
+        "start": 314,
+        "end": 470,
+    },
+    "001003": {
+        "log_id": "1a6487dd-8bc6-3762-bd8a-2e50e15dbe75",
+        "start": 471,
+        "end": 626,
+    },
+    "001004": {
+        "log_id": "1ab241cf-f9c5-3f8a-88bd-4e14baad8ede",
+        "start": 627,
+        "end": 783,
+    },
 }
 
     
