@@ -32,38 +32,67 @@ from kiss_icp.datasets import supported_file_extensions
 from av2.datasets.sensor.sensor_dataloader import SensorDataloader
 
 from typing import Final, List, Tuple, Union
-from kiss_icp.av_mapping.mapping import mapping
 
 class Argoverse2Dataset:
     def __init__(self, data_dir: Path, sequence: int, *_, **__):
         try:
             importlib.import_module("av2")
         except ModuleNotFoundError:
-            print("av2-devkit is not installed on your system")
-            print('run "pip install av2-devkit"')
+            print("av2 is not installed on your system")
+            print('run "pip install av2"')
             sys.exit(1)
 
         self.part_id = str(int(sequence / 1000)).zfill(3)
         self.sequence_id = self.part_id + str(int(sequence % 1000)).zfill(3)
+        self.sequence_int = int(self.sequence_id[-3:])
         self.scans_dir = Path.absolute(data_dir) / f"train-{self.part_id}"
+        # This class should be smaller/concise
         self._dataset = SensorDataloader(
             self.scans_dir,
             with_annotations=True,
             with_cache=True,
         )
+        print("load data successfully.")
+        self.mapping = self._mapping()
         self.annotations = dict()
-        self.load_annotations() 
+        self.load_annotations()
+
+    def _mapping(self):
+        output_dir = Path.cwd()
+        result_dir = Path(output_dir) / 'KISS-ICP' / 'python' / 'kiss_icp'/ 'av_mapping'
+        result_path = result_dir / f"{self.part_id}.npy"
+        is_found = result_path.exists()
+        if is_found:
+            mapping = dict()
+            mapping = np.load(result_path, allow_pickle='TRUE').item()
+        else:
+            print("Generating mapping id")
+            sequence = 0
+            sweep_number = 0
+            length = len(self._dataset)
+            mapping = dict()
+            while sweep_number != length:
+                print("sequence {}, sweep_number {}".format(sequence, sweep_number))
+                mapping[sequence] = sweep_number
+                num_sweeps_in_log = self._dataset[sweep_number].num_sweeps_in_log
+                sweep_number = sweep_number + num_sweeps_in_log
+                sequence = sequence + 1
+            if not result_dir.exists():
+                result_dir.mkdir(parents=True, exist_ok=True)
+            np.save(result_path, mapping)
+        return mapping
 
     def __len__(self):
-        return mapping[self.sequence_id]["end"] - mapping[self.sequence_id]["start"]
+        sweep_number = self.mapping[self.sequence_int]
+        # They use 0 as an initial value.
+        return  self._dataset[sweep_number].num_sweeps_in_log - 1
 
     def __getitem__(self, idx):
         new_idx =  self.get_new_idx(idx)
         return self._dataset[new_idx].sweep.xyz
 
     def get_new_idx(self, idx):
-        new_idx =  mapping[self.sequence_id]["start"] + idx
-        return new_idx
+        return self.mapping[self.sequence_int] + idx
 
     def get_intensity(self, idx):
         new_idx =  self.get_new_idx(idx)
@@ -99,7 +128,7 @@ class Argoverse2Dataset:
         print("Processing Ground truth")
         for i in range(num_sweeps):
             self.annotations[i] = self.get_annotation(i)
-            print("Processing IDX", i)
+            print("Processing Annotation: IDX", i)
         print("FINISH")
         self.save_annotations(self.annotations)
 

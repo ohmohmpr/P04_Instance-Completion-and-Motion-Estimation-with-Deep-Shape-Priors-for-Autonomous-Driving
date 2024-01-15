@@ -174,7 +174,7 @@ class OdometryPipeline:
         save_path = result_dir / self._dataset.sequence_id
         if not result_dir.exists():
             result_dir.mkdir(parents=True, exist_ok=True)
-        np.save(save_path, self.visualizer.evaluation, allow_pickle=True)
+        np.save(save_path, self.visualizer.annotations_and_detections, allow_pickle=True)
 
     def _write_gt_poses(self):
         if not self.has_gt:

@@ -92,8 +92,8 @@ class RegistrationVisualizer(StubVisualizer):
         self.instances = []
         self.instances_gt = []
 
-        # Evaluation
-        self.evaluation = {}
+        # annotations_and_detections
+        self.annotations_and_detections = {}
 
         # Initialize visualizer
         self.vis = self.o3d.visualization.VisualizerWithKeyCallback()
@@ -388,7 +388,7 @@ class RegistrationVisualizer(StubVisualizer):
                 # except:
                 #     pass
                 # #################### ADD MESH #####################
-        self.evaluation[self.frames_ID] = {}
+        self.annotations_and_detections[self.frames_ID] = {}
         for instance in self.instances:
             for annotation in self.instances_gt:
                 annotation_bbox = BoundingBox3D(annotation.dst_SE3_object.translation[0], annotation.dst_SE3_object.translation[1],
@@ -398,9 +398,9 @@ class RegistrationVisualizer(StubVisualizer):
 
                 detected_bbox = instance.s_pose_ious[self.frames_ID]
                 if iou_3d(annotation_bbox.iou, detected_bbox) > 0:
-                    self.evaluation[self.frames_ID][annotation.track_uuid] = tuple((annotation, instance))
+                    self.annotations_and_detections[self.frames_ID][annotation.track_uuid] = tuple((annotation, instance))
 
-        print("self.evaluation[self.frames_ID]", len(self.evaluation[self.frames_ID]))
+        print("self.annotations_and_detections[self.frames_ID]", len(self.annotations_and_detections[self.frames_ID]))
 
         self.instances = []
         self.instances_gt = []

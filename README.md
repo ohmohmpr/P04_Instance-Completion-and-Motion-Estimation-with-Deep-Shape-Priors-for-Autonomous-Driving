@@ -63,9 +63,12 @@ conda activate av2
 
 kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/000013.npy --dataloader argoverse2 --sequence 000013
 
-kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/001/000000.npy --dataloader argoverse2 --sequence 001000 # 1. extract point cloud first 
+kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/KITTI/21_01.npy --dataloader argoverse2 --sequence 001000 # 1. extract point cloud first 
 kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/001/001000.npy --dataloader argoverse2 --sequence 001000 # 3. show results
 
+
+# Part 2 in flash drive
+kiss_icp_pipeline --visualize /media/ohmpr/OHM_1TB/data/datasets/av2 results/OpenPCDet_PointRCNN/KITTI/21_01.npy --dataloader argoverse2 --sequence 002000 # 1. extract point cloud first 
 ```
 
 3D detection
