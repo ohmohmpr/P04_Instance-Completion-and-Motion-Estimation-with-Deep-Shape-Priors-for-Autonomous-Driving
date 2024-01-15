@@ -44,6 +44,7 @@ class OdometryPipeline:
         self,
         dataset,
         bounding_boxes,
+        generate_pcd: Optional[bool] = False,
         config: Optional[Path] = None,
         deskew: Optional[bool] = False,
         max_range: Optional[float] = None,
@@ -62,6 +63,7 @@ class OdometryPipeline:
         # Bounding boxes == Dictionary
         self._bounding_boxes = np.load(bounding_boxes, allow_pickle='TRUE').item()
         self._dataset.load_annotations()
+        self.generate_pcd = generate_pcd
 
         # Config and output dir
         self.config = load_config(config, deskew=deskew, max_range=max_range)
@@ -113,8 +115,8 @@ class OdometryPipeline:
     def _next(self, idx):
         """TODO: re-arrange this logic"""
         dataframe = self._dataset[idx]
-        # self._dataset.get_pcd_intensity(idx)
-        # print("get_timestamp_ns", self._dataset.get_timestamp_ns(idx))
+        if self.generate_pcd:
+            self._dataset.get_pcd_intensity(idx)
         try:
             frame, timestamps = dataframe
         except ValueError:

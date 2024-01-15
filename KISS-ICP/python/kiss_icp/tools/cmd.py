@@ -173,6 +173,14 @@ def kiss_icp_pipeline(
         help="[Optional] For some dataloaders, you need to specify a given sequence",
         rich_help_panel="Additional Options",
     ),
+    generate_pcd: bool = typer.Option(
+        False,
+        "--generate_pcd",
+        help="[Optional]For Argoverse2 dataloader, generate pcd for detection",
+        rich_help_panel="Additional Options",
+        show_default=False,
+        is_flag=True,
+    ),
     topic: Optional[str] = typer.Option(
         None,
         "--topic",
@@ -241,6 +249,7 @@ def kiss_icp_pipeline(
             meta=meta,
         ),
         bounding_boxes=bounding_boxes,
+        generate_pcd=generate_pcd,
         config=config,
         deskew=deskew,
         max_range=max_range,
