@@ -20,17 +20,19 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from bbox.metrics import iou_3d
 import copy
 import importlib
 import os
 from abc import ABC
 from functools import partial
-from typing import Callable, List
+from typing import Callable, List, Tuple
 
 import numpy as np
 import open3d as o3d
 from kiss_icp.tools.utils import translate_boxes_to_open3d_instance, InstanceAssociation
 from kiss_icp.tools.utils_class import BoundingBox3D, OutputPCD
+from kiss_icp.tools.annotations import filter_annotations, filter_bboxes
 from scipy.spatial.transform import Rotation as R
 
 YELLOW = np.array([1, 0.706, 0])
@@ -87,6 +89,11 @@ class RegistrationVisualizer(StubVisualizer):
         self.visual_instances_gt = []
         self.output_pcd_s = {}
         self.meshs = []
+        self.instances = []
+        self.instances_gt = []
+
+        # Evaluation
+        self.evaluation = {}
 
         # Initialize visualizer
         self.vis = self.o3d.visualization.VisualizerWithKeyCallback()
@@ -259,30 +266,34 @@ class RegistrationVisualizer(StubVisualizer):
         self.frames_ID = self.frames_ID + 1
         
         ego_car_pose = pose
+
+        # Preprocess bounding boxes
+        x_min_bbox = 0
+        x_max_bbox = 60
+        y_min_bbox = -2
+        y_max_bbox = 10
         boundingBoxes3D = []
+        boundingBoxes3D = filter_bboxes(bboxes, x_min_bbox, x_max_bbox, y_min_bbox, y_max_bbox)
+        annotation_BBox3D = filter_annotations(annotations, x_min_bbox, x_max_bbox, y_min_bbox, y_max_bbox)
+        self.remove_all()
+        self.remove_gt() # annotations
 
-        for bbox in bboxes:
-            axis_angles = np.array([0, 0, bbox[6] + 1e-10])
-            rot = o3d.geometry.get_rotation_matrix_from_axis_angle(axis_angles)
-            boundingBoxes3D += [BoundingBox3D(bbox[0], bbox[1], bbox[2], bbox[3], bbox[4], bbox[5], rot)]
-
+        # Compute
         self.InstanceAssociation.update(ego_car_pose, boundingBoxes3D, self.frames_ID)
         current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 3)
 
-        self.remove_gt()
-        
-        for annotation in annotations:
+        for annotation in annotation_BBox3D:
             bbox = BoundingBox3D(annotation.dst_SE3_object.translation[0], annotation.dst_SE3_object.translation[1],
                     annotation.dst_SE3_object.translation[2], annotation.length_m, 
-                    annotation.width_m,annotation.height_m,
+                    annotation.width_m, annotation.height_m,
                     annotation.dst_SE3_object.rotation)
+
             line_set, box3d = translate_boxes_to_open3d_instance(bbox)
             line_set.paint_uniform_color((1, 0, 0))
             self.vis.add_geometry(line_set, reset_bounding_box=False)
             self.visual_instances_gt.append(line_set)
+            self.instances_gt.append(annotation)
 
-        # Visual in sensor frame
-        self.remove_all()
 
         for id, current_instance in current_instances.items():
             # if current_instance.last_frame == self.frames_ID and current_instance.id in instance_id_list:
@@ -300,6 +311,7 @@ class RegistrationVisualizer(StubVisualizer):
                 line_set.paint_uniform_color(color_code)
                 self.vis.add_geometry(line_set, reset_bounding_box=False)
                 self.visual_instances.append(line_set)
+                self.instances.append(current_instance)
                 ##################### VISUALIZAION ALL #####################
                 
                 
@@ -376,10 +388,23 @@ class RegistrationVisualizer(StubVisualizer):
                 # except:
                 #     pass
                 # #################### ADD MESH #####################
-                
-                
-        
-        
+        self.evaluation[self.frames_ID] = {}
+        for instance in self.instances:
+            for annotation in self.instances_gt:
+                annotation_bbox = BoundingBox3D(annotation.dst_SE3_object.translation[0], annotation.dst_SE3_object.translation[1],
+                        annotation.dst_SE3_object.translation[2], annotation.length_m, 
+                        annotation.width_m, annotation.height_m,
+                        annotation.dst_SE3_object.rotation)
+
+                detected_bbox = instance.s_pose_ious[self.frames_ID]
+                if iou_3d(annotation_bbox.iou, detected_bbox) > 0:
+                    self.evaluation[self.frames_ID][annotation.track_uuid] = tuple((annotation, instance))
+
+        print("self.evaluation[self.frames_ID]", len(self.evaluation[self.frames_ID]))
+
+        self.instances = []
+        self.instances_gt = []
+
         # Render trajectory, only if it make sense (global view)
         if self.render_trajectory and self.global_view:
             self.vis.add_geometry(self.frames[-1], reset_bounding_box=False)

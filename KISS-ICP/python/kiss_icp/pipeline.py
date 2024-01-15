@@ -90,6 +90,7 @@ class OdometryPipeline:
     def run(self):
         self._run_pipeline()
         self._run_evaluation()
+        self._save_annotations_and_detections()
         # self._create_output_dir()
         # self._write_result_poses()
         # self._write_gt_poses()
@@ -166,6 +167,14 @@ class OdometryPipeline:
             poses=self._calibrate_poses(self.poses),
             timestamps=self._get_frames_timestamps(),
         )
+
+    def _save_annotations_and_detections(self):
+        output_dir = Path.cwd()
+        result_dir = Path(output_dir) / 'results' / 'annotations_and_detections' / self._dataset.part_id
+        save_path = result_dir / self._dataset.sequence_id
+        if not result_dir.exists():
+            result_dir.mkdir(parents=True, exist_ok=True)
+        np.save(save_path, self.visualizer.evaluation, allow_pickle=True)
 
     def _write_gt_poses(self):
         if not self.has_gt:

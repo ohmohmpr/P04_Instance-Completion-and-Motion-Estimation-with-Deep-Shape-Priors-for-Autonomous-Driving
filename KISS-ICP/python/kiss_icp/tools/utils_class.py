@@ -18,6 +18,16 @@ class BoundingBox3D:
     width: float
     height: float
     rot: float
+    iou: BBox3D = field(init=False, repr=False)
+
+    def __post_init__(self):
+        r = R.from_matrix(self.rot)
+        q8d_xyzw = r.as_quat()
+        q8d = np.array([q8d_xyzw[3], q8d_xyzw[0], q8d_xyzw[1], q8d_xyzw[2]])
+
+        self.iou: BBox3D = BBox3D(self.x, self.y, self.z, 
+                                         self.length, self.width, 
+                                         self.height, q=q8d)
 
 @dataclass
 class TempInstance:
