@@ -39,3 +39,4 @@ def absolute_trajectory_error(
 ) -> Tuple[float, float]:
     """Sptis the sequence error for a given trajectory in camera coordinate frames."""
     return kiss_icp_pybind._absolute_trajectory_error(gt_poses, results_poses)
+

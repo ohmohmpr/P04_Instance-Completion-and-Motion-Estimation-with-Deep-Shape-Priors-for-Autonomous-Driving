@@ -270,7 +270,7 @@ class RegistrationVisualizer(StubVisualizer):
         # Preprocess bounding boxes
         x_min_bbox = 0
         x_max_bbox = 60
-        y_min_bbox = -2
+        y_min_bbox = -5
         y_max_bbox = 10
         boundingBoxes3D = []
         boundingBoxes3D = filter_bboxes(bboxes, x_min_bbox, x_max_bbox, y_min_bbox, y_max_bbox)
@@ -309,6 +309,16 @@ class RegistrationVisualizer(StubVisualizer):
                     
                 line_set, box3d = translate_boxes_to_open3d_instance(bbox)
                 line_set.paint_uniform_color(color_code)
+
+
+                origin = [bbox.x , bbox.y, bbox.z]
+                axis_pcd = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5.0, origin=[0, 0, 0])
+                translation_matrix = np.array(origin).T
+                transform_matrix = np.hstack((bbox.rot, translation_matrix[..., np.newaxis]))
+                transform_matrix_homo = np.vstack((transform_matrix, np.array([0, 0, 0, 1])))
+                axis_pcd.transform(transform_matrix_homo)
+                self.vis.add_geometry(axis_pcd)
+
                 self.vis.add_geometry(line_set, reset_bounding_box=False)
                 self.visual_instances.append(line_set)
                 self.instances.append(current_instance)
@@ -398,9 +408,14 @@ class RegistrationVisualizer(StubVisualizer):
 
                 detected_bbox = instance.s_pose_ious[self.frames_ID]
                 if iou_3d(annotation_bbox.iou, detected_bbox) > 0:
-                    self.annotations_and_detections[self.frames_ID][annotation.track_uuid] = tuple((annotation, instance))
+                    # print("instance", instance)
+                    print("annotation.track_uuid", annotation.track_uuid)
+                    # when evaluate please use copy data directory to your computer
+                    instance_copy = copy.deepcopy(instance)
+                    self.annotations_and_detections[self.frames_ID][annotation.track_uuid] = tuple((instance_copy, annotation))
 
         print("self.annotations_and_detections[self.frames_ID]", len(self.annotations_and_detections[self.frames_ID]))
+        # print("self.annotations_and_detections[self.frames_ID]", self.annotations_and_detections)
 
         self.instances = []
         self.instances_gt = []
@@ -416,6 +431,9 @@ class RegistrationVisualizer(StubVisualizer):
             self.vis.reset_view_point(True)
             self.reset_bounding_box = False
 
+        # Adjust a view -> ohm editor
+        self.vis.get_view_control().set_zoom(0.15)
+        
     def remove_all(self):
         length = len(self.visual_instances)
         length_mesh = len(self.meshs)

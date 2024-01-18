@@ -20,19 +20,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import os
-import sys
-from pathlib import Path
 import importlib
-
 import natsort
 import numpy as np
-
-from kiss_icp.datasets import supported_file_extensions
-from av2.datasets.sensor.sensor_dataloader import SensorDataloader
-
+import os
+from pathlib import Path
+import sys
 from typing import Final, List, Tuple, Union
+import yaml
 
+from av2.datasets.sensor.sensor_dataloader import SensorDataloader
+from kiss_icp.datasets import supported_file_extensions
 class Argoverse2Dataset:
     def __init__(self, data_dir: Path, sequence: int, *_, **__):
         try:
@@ -46,6 +44,12 @@ class Argoverse2Dataset:
         self.sequence_id = self.part_id + str(int(sequence % 1000)).zfill(3)
         self.sequence_int = int(self.sequence_id[-3:])
         self.scans_dir = Path.absolute(data_dir) / f"train-{self.part_id}"
+        output_dir = Path.cwd()
+        self.result_dir_av_mapping = Path(output_dir) / 'KISS-ICP' / 'python' / 'kiss_icp'/ 'av_mapping'
+        self.result_dir_gt = Path(output_dir) / 'results_gt' / 'gt' / 'Argoverse2' / self.part_id
+        
+        self.env = self._filtering()
+        print("self.env", self.env)
         # This class should be smaller/concise
         self._dataset = SensorDataloader(
             self.scans_dir,
@@ -57,10 +61,21 @@ class Argoverse2Dataset:
         self.annotations = dict()
         self.load_annotations()
 
+    def _filtering(self):
+        env = None
+        result_path = self.result_dir_av_mapping / 'filtering' / 'mapping.yml'
+        with open(result_path, 'r') as file:
+            filtering = yaml.safe_load(file)
+        if self.sequence_id in filtering['urban_tree']:
+            path = filtering['urban_tree_path']
+        
+            with open(path, 'r') as env_file:
+                env = yaml.safe_load(env_file)
+        
+        return env
+
     def _mapping(self):
-        output_dir = Path.cwd()
-        result_dir = Path(output_dir) / 'KISS-ICP' / 'python' / 'kiss_icp'/ 'av_mapping'
-        result_path = result_dir / f"{self.part_id}.npy"
+        result_path = self.result_dir_av_mapping / f"{self.part_id}.npy"
         is_found = result_path.exists()
         if is_found:
             mapping = dict()
@@ -133,9 +148,7 @@ class Argoverse2Dataset:
         self.save_annotations(self.annotations)
 
     def load_annotations(self):
-        output_dir = Path.cwd()
-        result_dir = Path(output_dir) / 'results_gt' / 'gt' / 'Argoverse2' / self.part_id
-        annotations_path = Path(result_dir) / f"{self.sequence_id}.npy"
+        annotations_path = Path(self.result_dir_gt) / f"{self.sequence_id}.npy"
         is_found = annotations_path.exists()
         if is_found:
             self.annotations = np.load(annotations_path, allow_pickle='TRUE').item()
@@ -144,10 +157,8 @@ class Argoverse2Dataset:
             self.get_annotations()
 
     def save_annotations(self, annotations):
-        output_dir = Path.cwd()
-        result_dir = Path(output_dir) / 'results_gt' / 'gt' / 'Argoverse2' / self.part_id
-        if not result_dir.exists():
-            result_dir.mkdir(parents=True, exist_ok=True)
-        np.save(f"{result_dir}/{self.sequence_id}.npy", annotations)
+        if not self.result_dir_gt.exists():
+            self.result_dir_gt.mkdir(parents=True, exist_ok=True)
+        np.save(f"{self.result_dir_gt}/{self.sequence_id}.npy", annotations)
 
 

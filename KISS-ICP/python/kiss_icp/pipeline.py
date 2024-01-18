@@ -115,6 +115,12 @@ class OdometryPipeline:
     def _next(self, idx):
         """TODO: re-arrange this logic"""
         dataframe = self._dataset[idx]
+        try:
+            if self._dataset.env['filtering_z_point']:
+                filter_z_points = dataframe[:, 2] < self._dataset.env['filtering_z_point_m']
+                dataframe = dataframe[filter_z_points]
+        except:
+            pass
         if self.generate_pcd:
             self._dataset.get_pcd_intensity(idx)
         try:
