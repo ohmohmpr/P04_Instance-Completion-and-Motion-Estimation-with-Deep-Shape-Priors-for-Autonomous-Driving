@@ -85,6 +85,7 @@ class OdometryPipeline:
 
         # Visualizer
         self.visualizer = RegistrationVisualizer() if visualize else StubVisualizer()
+        self.visualizer.env = self._dataset.env
         if hasattr(self._dataset, "use_global_visualizer"):
             self.visualizer.global_view = self._dataset.use_global_visualizer
 

@@ -113,6 +113,9 @@ class RegistrationVisualizer(StubVisualizer):
             self.render_source,
         )
 
+        # Take environment file ohm edited
+        self.env = None
+
     def update(self, source, keypoints, target_map, pose, bboxes, annotations):
         target = target_map.point_cloud()
         self._update_geometries(source, keypoints, target, pose, bboxes, annotations)
@@ -268,13 +271,18 @@ class RegistrationVisualizer(StubVisualizer):
         ego_car_pose = pose
 
         # Preprocess bounding boxes
-        x_min_bbox = 0
-        x_max_bbox = 60
-        y_min_bbox = -5
-        y_max_bbox = 10
+
         boundingBoxes3D = []
-        boundingBoxes3D = filter_bboxes(bboxes, x_min_bbox, x_max_bbox, y_min_bbox, y_max_bbox)
-        annotation_BBox3D = filter_annotations(annotations, x_min_bbox, x_max_bbox, y_min_bbox, y_max_bbox)
+        if self.env != None:
+            x_min_bbox = self.env['bbox_size']['x_min_bbox']
+            x_max_bbox = self.env['bbox_size']['x_max_bbox']
+            y_min_bbox = self.env['bbox_size']['y_min_bbox']
+            y_max_bbox = self.env['bbox_size']['y_max_bbox']
+            boundingBoxes3D = filter_bboxes(bboxes, x_min_bbox, x_max_bbox, y_min_bbox, y_max_bbox)
+            annotation_BBox3D = filter_annotations(annotations, x_min_bbox, x_max_bbox, y_min_bbox, y_max_bbox)
+        else:
+            boundingBoxes3D = filter_bboxes(bboxes)
+            annotation_BBox3D = filter_annotations(annotations)
         self.remove_all()
         self.remove_gt() # annotations
 
@@ -312,12 +320,17 @@ class RegistrationVisualizer(StubVisualizer):
 
 
                 origin = [bbox.x , bbox.y, bbox.z]
-                axis_pcd = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5.0, origin=[0, 0, 0])
+                axis_car = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5.0, origin=[0, 0, 0])
                 translation_matrix = np.array(origin).T
                 transform_matrix = np.hstack((bbox.rot, translation_matrix[..., np.newaxis]))
                 transform_matrix_homo = np.vstack((transform_matrix, np.array([0, 0, 0, 1])))
-                axis_pcd.transform(transform_matrix_homo)
-                self.vis.add_geometry(axis_pcd)
+                axis_car.transform(transform_matrix_homo)
+                print("axis_car", axis_car)
+                print("axis_car", axis_car.__str__)
+                # look at sdc might help
+                self.vis.add_geometry(axis_car, reset_bounding_box=False)
+
+
 
                 self.vis.add_geometry(line_set, reset_bounding_box=False)
                 self.visual_instances.append(line_set)
@@ -431,8 +444,9 @@ class RegistrationVisualizer(StubVisualizer):
             self.vis.reset_view_point(True)
             self.reset_bounding_box = False
 
-        # Adjust a view -> ohm editor
-        self.vis.get_view_control().set_zoom(0.15)
+        # Adjust a view -> ohm editor zoom keep changing view 
+        # if self.env != None:
+        #     self.vis.get_view_control().set_zoom(self.env['vis']['get_view_control']['set_zoom'])
         
     def remove_all(self):
         length = len(self.visual_instances)

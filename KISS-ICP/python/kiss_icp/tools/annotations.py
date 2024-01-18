@@ -5,7 +5,7 @@ from typing import Callable, List
 
 from kiss_icp.tools.utils_class import BoundingBox3D
 
-def filter_annotations(annotations, x_min=0, x_max=60, y_min=-30, y_max=30) -> List:
+def filter_annotations(annotations, x_min=-500, x_max=500, y_min=-500, y_max=500) -> List:
     annotations_BBox3D = []
     for annotation in annotations:
         x = annotation.dst_SE3_object.translation[0]
@@ -15,7 +15,7 @@ def filter_annotations(annotations, x_min=0, x_max=60, y_min=-30, y_max=30) -> L
 
     return annotations_BBox3D
 
-def filter_bboxes(bboxes, x_min=0, x_max=60, y_min=-30, y_max=30) -> List:
+def filter_bboxes(bboxes, x_min=-500, x_max=500, y_min=-500, y_max=500) -> List:
     bboxes_BBox3D = []
     for bbox in bboxes:
         x = bbox[0]
