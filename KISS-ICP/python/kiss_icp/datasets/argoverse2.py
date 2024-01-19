@@ -49,6 +49,7 @@ class Argoverse2Dataset:
         self.result_dir_gt = Path(output_dir) / 'results_gt' / 'gt' / 'Argoverse2' / self.part_id
         
         self.env = self._filtering()
+        self.list_track_uuid = self._filtering_track_uuid()
         print("self.env", self.env)
         # This class should be smaller/concise
         self._dataset = SensorDataloader(
@@ -73,6 +74,16 @@ class Argoverse2Dataset:
                 env = yaml.safe_load(env_file)
         
         return env
+
+    def _filtering_track_uuid(self):
+        env = None
+        result_path = self.result_dir_av_mapping / 'filtering' / 'filter_by_track_uuid_path.yml'
+        with open(result_path, 'r') as file:
+            filtering = yaml.safe_load(file)
+        list_track_uuid = []
+        if self.sequence_id in filtering['track_uuid']:
+            list_track_uuid = filtering['track_uuid'][self.sequence_id]
+        return list_track_uuid        
 
     def _mapping(self):
         result_path = self.result_dir_av_mapping / f"{self.part_id}.npy"

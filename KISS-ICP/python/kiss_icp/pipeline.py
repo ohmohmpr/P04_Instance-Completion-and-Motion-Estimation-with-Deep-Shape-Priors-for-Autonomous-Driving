@@ -86,6 +86,7 @@ class OdometryPipeline:
         # Visualizer
         self.visualizer = RegistrationVisualizer() if visualize else StubVisualizer()
         self.visualizer.env = self._dataset.env
+        self.visualizer.list_track_uuid = self._dataset.list_track_uuid
         if hasattr(self._dataset, "use_global_visualizer"):
             self.visualizer.global_view = self._dataset.use_global_visualizer
 
@@ -183,7 +184,8 @@ class OdometryPipeline:
         save_path = result_dir / self._dataset.sequence_id
         if not result_dir.exists():
             result_dir.mkdir(parents=True, exist_ok=True)
-        np.save(save_path, self.visualizer.annotations_and_detections, allow_pickle=True)
+        if len(self._dataset.list_track_uuid) == 0:
+            np.save(save_path, self.visualizer.annotations_and_detections, allow_pickle=True)
 
     def _write_gt_poses(self):
         if not self.has_gt:

@@ -85,12 +85,10 @@ class RegistrationVisualizer(StubVisualizer):
         # Instance association
         self.InstanceAssociation = InstanceAssociation()
         self.frames_ID = -1
-        self.visual_instances = []
-        self.visual_instances_gt = []
         self.output_pcd_s = {}
         self.meshs = []
-        self.instances = []
-        self.instances_gt = []
+        self.instances = {}
+        self.instances_gt = {}
 
         # annotations_and_detections
         self.annotations_and_detections = {}
@@ -115,9 +113,11 @@ class RegistrationVisualizer(StubVisualizer):
 
         # Take environment file ohm edited
         self.env = None
-        self.test = {}
+        self.list_track_uuid = []
         self.found_instance = {}
         self.not_found_instance = {}
+        self.found_instance_annotation = {}
+        self.not_found_instance_annotation = {}
 
     def update(self, source, keypoints, target_map, pose, bboxes, annotations):
         target = target_map.point_cloud()
@@ -273,9 +273,9 @@ class RegistrationVisualizer(StubVisualizer):
         
         ego_car_pose = pose
 
-        # Preprocess bounding boxes
-
+        # Filter by Area
         boundingBoxes3D = []
+
         if self.env != None:
             x_min_bbox = self.env['bbox_size']['x_min_bbox']
             x_max_bbox = self.env['bbox_size']['x_max_bbox']
@@ -286,14 +286,52 @@ class RegistrationVisualizer(StubVisualizer):
         else:
             boundingBoxes3D = filter_bboxes(bboxes)
             annotation_BBox3D = filter_annotations(annotations)
-        self.remove_all()
-        self.remove_gt() # annotations
 
-        # Compute
+        # Filter by track_uuid, if no 
+        if len(self.list_track_uuid) > 0:
+            # Refactor to function
+            new_annotations_BBox3D = []
+            for i in range(len(self.list_track_uuid)):
+                for annotation in annotation_BBox3D:
+                    if annotation.track_uuid == self.list_track_uuid[i]:
+                        new_annotations_BBox3D.append(annotation)
+                        break
+            annotation_BBox3D = new_annotations_BBox3D
+
+        # Get current instance
         self.InstanceAssociation.update(ego_car_pose, boundingBoxes3D, self.frames_ID)
         current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 3)
 
+        # Filter instances by IOU between annotations and instances
+        if True:
+            new_current_instances = {}
+            self.annotations_and_detections[self.frames_ID] = {}
+            for id, current_instance in current_instances.items():
+                if current_instance.last_frame == self.frames_ID:
+                    color_code = current_instance.color_code
+                    if self.global_view:
+                        detected_bbox = current_instance.g_pose_ious[current_instance.last_frame]
+                    else:
+                        detected_bbox = current_instance.s_pose_ious[current_instance.last_frame]
+
+                    for annotation in annotation_BBox3D:
+                        annotation_bbox = BoundingBox3D(annotation.dst_SE3_object.translation[0], annotation.dst_SE3_object.translation[1],
+                                                        annotation.dst_SE3_object.translation[2], annotation.length_m, 
+                                                        annotation.width_m, annotation.height_m,
+                                                        annotation.dst_SE3_object.rotation)
+                        if iou_3d(annotation_bbox.iou, detected_bbox) > 0:
+                            new_current_instances[id] = current_instance
+                            # # when evaluate please use copy data directory to your computer
+                            instance_copy = copy.deepcopy(current_instance)
+                            self.annotations_and_detections[self.frames_ID][annotation.track_uuid] = tuple((instance_copy, annotation))
+                            break
+            
+            # print("self.annotations_and_detections", len(self.annotations_and_detections[self.frames_ID]))
+            current_instances = new_current_instances
+
+        # Show annotation
         for annotation in annotation_BBox3D:
+
             bbox = BoundingBox3D(annotation.dst_SE3_object.translation[0], annotation.dst_SE3_object.translation[1],
                     annotation.dst_SE3_object.translation[2], annotation.length_m, 
                     annotation.width_m, annotation.height_m,
@@ -301,43 +339,81 @@ class RegistrationVisualizer(StubVisualizer):
 
             line_set, box3d = translate_boxes_to_open3d_instance(bbox)
             line_set.paint_uniform_color((1, 0, 0))
-            self.vis.add_geometry(line_set, reset_bounding_box=False)
-            self.visual_instances_gt.append(line_set)
-            self.instances_gt.append(annotation)
 
+            if annotation.track_uuid not in self.instances_gt:
+                # Create matrix
+                mtx_t = np.array([bbox.x , bbox.y, bbox.z]).T
+                mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
+                mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
 
+                self.vis.add_geometry(line_set, reset_bounding_box=False)
+
+                # Store
+                self.instances_gt[annotation.track_uuid] = {}
+                self.instances_gt[annotation.track_uuid]['line_set'] = line_set
+                self.instances_gt[annotation.track_uuid]['mtx_T'] = mtx_T
+                self.instances_gt[annotation.track_uuid]['last_frame'] = self.frames_ID
+
+                if annotation.track_uuid in self.not_found_instance_annotation:
+                    del self.not_found_instance_annotation[annotation.track_uuid]
+                self.found_instance_annotation[annotation.track_uuid] = annotation.track_uuid
+
+            else:
+                # Create matrix
+                mtx_t = np.array([bbox.x , bbox.y, bbox.z]).T
+                mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
+                mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
+
+                line_set = self.instances_gt[annotation.track_uuid]['line_set']
+                prev_mtx_T = self.instances_gt[annotation.track_uuid]['mtx_T']
+                mtx_T_sensor = mtx_T @ np.linalg.inv(prev_mtx_T)
+                
+                line_set.transform(mtx_T_sensor)
+                self.vis.update_geometry(line_set)
+
+                # Store
+                self.instances_gt[annotation.track_uuid]['line_set'] = line_set
+                self.instances_gt[annotation.track_uuid]['mtx_T'] = mtx_T
+                self.instances_gt[annotation.track_uuid]['last_frame'] = self.frames_ID
+                
+                if annotation.track_uuid in self.not_found_instance_annotation:
+                    del self.not_found_instance_annotation[annotation.track_uuid]
+                self.found_instance_annotation[annotation.track_uuid] = annotation.track_uuid
+
+        # Show current instance
         for id, current_instance in current_instances.items():
             # if current_instance.last_frame == self.frames_ID and current_instance.id in instance_id_list:
             
             if current_instance.last_frame == self.frames_ID:
                 ##################### VISUALIZAION ALL #####################
                 color_code = current_instance.color_code
-                
                 if self.global_view:
-                    bbox = current_instance.g_pose_visuals[current_instance.last_frame]
+                    bbox = current_instance.s_pose_ious[current_instance.last_frame]
                 else:
                     bbox = current_instance.s_pose_visuals[current_instance.last_frame]
-                    
                 line_set, box3d = translate_boxes_to_open3d_instance(bbox)
                 line_set.paint_uniform_color(color_code)
 
-
-                if current_instance.id not in self.test:
+                if current_instance.id not in self.instances:
                     # Create matrix
                     mtx_t = np.array([bbox.x , bbox.y, bbox.z]).T
                     mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
                     mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
 
-                    # Create Axis
+                    # Create Attribute
                     axis_car = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5.0, origin=[0, 0, 0])
+
+                    # Update Attribute
                     axis_car.transform(mtx_T)
                     self.vis.add_geometry(axis_car, reset_bounding_box=False)
+                    self.vis.add_geometry(line_set, reset_bounding_box=False)
 
                     # Store
-                    self.test[current_instance.id] = {}
-                    self.test[current_instance.id]['axis_car'] = axis_car
-                    self.test[current_instance.id]['mtx_T'] = mtx_T
-                    self.test[current_instance.id]['last_frame'] = self.frames_ID
+                    self.instances[current_instance.id] = {}
+                    self.instances[current_instance.id]['axis_car'] = axis_car
+                    self.instances[current_instance.id]['line_set'] = line_set
+                    self.instances[current_instance.id]['mtx_T'] = mtx_T
+                    self.instances[current_instance.id]['last_frame'] = self.frames_ID
 
                     if current_instance.id in self.not_found_instance:
                         del self.not_found_instance[current_instance.id]
@@ -349,28 +425,28 @@ class RegistrationVisualizer(StubVisualizer):
                     mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
                     mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
 
-                    # Get Axis
-                    axis_car = self.test[current_instance.id]['axis_car']
-                    prev_mtx_T = self.test[current_instance.id]['mtx_T']
+                    # Get Attribute
+                    axis_car = self.instances[current_instance.id]['axis_car']
+                    line_set = self.instances[current_instance.id]['line_set']
+                    prev_mtx_T = self.instances[current_instance.id]['mtx_T']
                     mtx_T_sensor = mtx_T @ np.linalg.inv(prev_mtx_T)
                     
-                    # axis_car.transform(ego_car_pose)
+                    # Update Attribute
                     axis_car.transform(mtx_T_sensor)
                     self.vis.update_geometry(axis_car)
+                    line_set.transform(mtx_T_sensor)
+                    self.vis.update_geometry(line_set)
 
                     # Store
-                    self.test[current_instance.id]['axis_car'] = axis_car
-                    self.test[current_instance.id]['mtx_T'] = mtx_T
-                    self.test[current_instance.id]['last_frame'] = self.frames_ID
+                    self.instances[current_instance.id]['axis_car'] = axis_car
+                    self.instances[current_instance.id]['line_set'] = line_set
+                    self.instances[current_instance.id]['mtx_T'] = mtx_T
+                    self.instances[current_instance.id]['last_frame'] = self.frames_ID
                     
                     if current_instance.id in self.not_found_instance:
                         del self.not_found_instance[current_instance.id]
                     self.found_instance[current_instance.id] = current_instance.id
 
-
-                self.vis.add_geometry(line_set, reset_bounding_box=False)
-                self.visual_instances.append(line_set)
-                self.instances.append(current_instance)
                 ##################### VISUALIZAION ALL #####################
                 
                 
@@ -449,33 +525,18 @@ class RegistrationVisualizer(StubVisualizer):
                 # #################### ADD MESH #####################
 
         for current_instance_id, _ in self.not_found_instance.items():
-            self.vis.remove_geometry(self.test[current_instance_id]['axis_car'], reset_bounding_box=False)
-            del self.test[current_instance_id]
+            self.vis.remove_geometry(self.instances[current_instance_id]['axis_car'], reset_bounding_box=False)
+            self.vis.remove_geometry(self.instances[current_instance_id]['line_set'], reset_bounding_box=False)
+            del self.instances[current_instance_id]
         self.not_found_instance = copy.deepcopy(self.found_instance)
         self.found_instance = {}
 
 
-        self.annotations_and_detections[self.frames_ID] = {}
-        for instance in self.instances:
-            for annotation in self.instances_gt:
-                annotation_bbox = BoundingBox3D(annotation.dst_SE3_object.translation[0], annotation.dst_SE3_object.translation[1],
-                        annotation.dst_SE3_object.translation[2], annotation.length_m, 
-                        annotation.width_m, annotation.height_m,
-                        annotation.dst_SE3_object.rotation)
-
-                detected_bbox = instance.s_pose_ious[self.frames_ID]
-                if iou_3d(annotation_bbox.iou, detected_bbox) > 0:
-                    # print("instance", instance)
-                    print("annotation.track_uuid", annotation.track_uuid)
-                    # when evaluate please use copy data directory to your computer
-                    instance_copy = copy.deepcopy(instance)
-                    self.annotations_and_detections[self.frames_ID][annotation.track_uuid] = tuple((instance_copy, annotation))
-
-        print("self.annotations_and_detections[self.frames_ID]", len(self.annotations_and_detections[self.frames_ID]))
-        # print("self.annotations_and_detections[self.frames_ID]", self.annotations_and_detections)
-
-        self.instances = []
-        self.instances_gt = []
+        for current_instance_id, _ in self.not_found_instance_annotation.items():
+            self.vis.remove_geometry(self.instances_gt[current_instance_id]['line_set'], reset_bounding_box=False)
+            del self.instances_gt[current_instance_id]
+        self.not_found_instance_annotation = copy.deepcopy(self.found_instance_annotation)
+        self.found_instance_annotation = {}
 
         # Render trajectory, only if it make sense (global view)
         if self.render_trajectory and self.global_view:
@@ -491,22 +552,5 @@ class RegistrationVisualizer(StubVisualizer):
         # Adjust a view -> ohm editor zoom keep changing view 
         # if self.env != None:
         #     self.vis.get_view_control().set_zoom(self.env['vis']['get_view_control']['set_zoom'])
-        
-    def remove_all(self):
-        length = len(self.visual_instances)
-        length_mesh = len(self.meshs)
-        
-        for i in range(length):
-            self.vis.remove_geometry(self.visual_instances[0], reset_bounding_box=False)
-            self.visual_instances.pop(0)
-        
-        for i in range(length_mesh):
-            self.vis.remove_geometry(self.meshs[0], reset_bounding_box=False)
-            self.meshs.pop(0)
-    
-    def remove_gt(self):
-        length = len(self.visual_instances_gt)
-        
-        for i in range(length):
-            self.vis.remove_geometry(self.visual_instances_gt[0], reset_bounding_box=False)
-            self.visual_instances_gt.pop(0)
+
+
