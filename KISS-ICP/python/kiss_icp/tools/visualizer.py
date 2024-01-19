@@ -115,6 +115,9 @@ class RegistrationVisualizer(StubVisualizer):
 
         # Take environment file ohm edited
         self.env = None
+        self.test = {}
+        self.found_instance = {}
+        self.not_found_instance = {}
 
     def update(self, source, keypoints, target_map, pose, bboxes, annotations):
         target = target_map.point_cloud()
@@ -319,17 +322,50 @@ class RegistrationVisualizer(StubVisualizer):
                 line_set.paint_uniform_color(color_code)
 
 
-                origin = [bbox.x , bbox.y, bbox.z]
-                axis_car = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5.0, origin=[0, 0, 0])
-                translation_matrix = np.array(origin).T
-                transform_matrix = np.hstack((bbox.rot, translation_matrix[..., np.newaxis]))
-                transform_matrix_homo = np.vstack((transform_matrix, np.array([0, 0, 0, 1])))
-                axis_car.transform(transform_matrix_homo)
-                print("axis_car", axis_car)
-                print("axis_car", axis_car.__str__)
-                # look at sdc might help
-                self.vis.add_geometry(axis_car, reset_bounding_box=False)
+                if current_instance.id not in self.test:
+                    # Create matrix
+                    mtx_t = np.array([bbox.x , bbox.y, bbox.z]).T
+                    mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
+                    mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
 
+                    # Create Axis
+                    axis_car = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5.0, origin=[0, 0, 0])
+                    axis_car.transform(mtx_T)
+                    self.vis.add_geometry(axis_car, reset_bounding_box=False)
+
+                    # Store
+                    self.test[current_instance.id] = {}
+                    self.test[current_instance.id]['axis_car'] = axis_car
+                    self.test[current_instance.id]['mtx_T'] = mtx_T
+                    self.test[current_instance.id]['last_frame'] = self.frames_ID
+
+                    if current_instance.id in self.not_found_instance:
+                        del self.not_found_instance[current_instance.id]
+                    self.found_instance[current_instance.id] = current_instance.id
+
+                else:
+                    # Create matrix
+                    mtx_t = np.array([bbox.x , bbox.y, bbox.z]).T
+                    mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
+                    mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
+
+                    # Get Axis
+                    axis_car = self.test[current_instance.id]['axis_car']
+                    prev_mtx_T = self.test[current_instance.id]['mtx_T']
+                    mtx_T_sensor = mtx_T @ np.linalg.inv(prev_mtx_T)
+                    
+                    # axis_car.transform(ego_car_pose)
+                    axis_car.transform(mtx_T_sensor)
+                    self.vis.update_geometry(axis_car)
+
+                    # Store
+                    self.test[current_instance.id]['axis_car'] = axis_car
+                    self.test[current_instance.id]['mtx_T'] = mtx_T
+                    self.test[current_instance.id]['last_frame'] = self.frames_ID
+                    
+                    if current_instance.id in self.not_found_instance:
+                        del self.not_found_instance[current_instance.id]
+                    self.found_instance[current_instance.id] = current_instance.id
 
 
                 self.vis.add_geometry(line_set, reset_bounding_box=False)
@@ -411,6 +447,14 @@ class RegistrationVisualizer(StubVisualizer):
                 # except:
                 #     pass
                 # #################### ADD MESH #####################
+
+        for current_instance_id, _ in self.not_found_instance.items():
+            self.vis.remove_geometry(self.test[current_instance_id]['axis_car'], reset_bounding_box=False)
+            del self.test[current_instance_id]
+        self.not_found_instance = copy.deepcopy(self.found_instance)
+        self.found_instance = {}
+
+
         self.annotations_and_detections[self.frames_ID] = {}
         for instance in self.instances:
             for annotation in self.instances_gt:
