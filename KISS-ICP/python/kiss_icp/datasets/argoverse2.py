@@ -47,10 +47,9 @@ class Argoverse2Dataset:
         output_dir = Path.cwd()
         self.result_dir_av_mapping = Path(output_dir) / 'KISS-ICP' / 'python' / 'kiss_icp'/ 'av_mapping'
         self.result_dir_gt = Path(output_dir) / 'results_gt' / 'gt' / 'Argoverse2' / self.part_id
-        
+        self.result_dir = Path(output_dir) / 'results' 
         self.env = self._filtering()
         self.list_track_uuid = self._filtering_track_uuid()
-        print("self.env", self.env)
         # This class should be smaller/concise
         self._dataset = SensorDataloader(
             self.scans_dir,
@@ -69,10 +68,8 @@ class Argoverse2Dataset:
             filtering = yaml.safe_load(file)
         if self.sequence_id in filtering['urban_tree']:
             path = filtering['urban_tree_path']
-        
             with open(path, 'r') as env_file:
                 env = yaml.safe_load(env_file)
-        
         return env
 
     def _filtering_track_uuid(self):
@@ -132,8 +129,8 @@ class Argoverse2Dataset:
         pcd = self.__getitem__(idx)
         intensity = self.get_intensity(idx) / 255
         pcd_intensity = np.hstack((pcd, intensity[..., np.newaxis]))
-        output_dir = Path.cwd()
-        result_dir = Path(output_dir) / 'results' / 'pcd_argo' / self.part_id / self.sequence_id
+        result_dir = self.result_dir / 'pcd_argo' / self.part_id / self.sequence_id
+
         if not result_dir.exists():
             result_dir.mkdir(parents=True, exist_ok=True)
         np.save(f"{result_dir}/{idx}.npy", pcd_intensity)

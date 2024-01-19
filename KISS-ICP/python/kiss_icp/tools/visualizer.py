@@ -26,6 +26,7 @@ import importlib
 import os
 from abc import ABC
 from functools import partial
+from pathlib import Path
 from typing import Callable, List, Tuple
 
 import numpy as np
@@ -42,15 +43,6 @@ BLUE = np.array([0.4, 0.5, 0.9])
 SPHERE_SIZE = 0.20
 
 save_mesh_dir = "results/deep_sdf/mesh"
-
-# 1048 1049 1059
-# 1066(1)
-# 1075 1078(1) 1080(3w) 1081(3)
-# 1090(2w) 1099(1) 1104(1)
-# 1119 1120(1) 1124(1) 1129(2)
-# 1131 1137(2) 1139(2) 1141(3)
-instance_id_list = [11]
-
 
 class StubVisualizer(ABC):
     def __init__(self):
@@ -85,13 +77,14 @@ class RegistrationVisualizer(StubVisualizer):
         # Instance association
         self.InstanceAssociation = InstanceAssociation()
         self.frames_ID = -1
-        self.output_pcd_s = {}
+        self.extracted_pcds = {}
         self.meshs = []
         self.instances = {}
         self.instances_gt = {}
 
         # annotations_and_detections
         self.annotations_and_detections = {}
+        self.get_track_uuid = {}
 
         # Initialize visualizer
         self.vis = self.o3d.visualization.VisualizerWithKeyCallback()
@@ -139,8 +132,6 @@ class RegistrationVisualizer(StubVisualizer):
         self._set_black_background(self.vis)
         self.vis.get_render_option().point_size = 2
         self.vis.get_render_option().line_width = 20 # THIS DOES NOT WORK
-        for i in range(4000):
-            self.output_pcd_s[i] = {}
         print(
             f"{w_name} initialized. Press:\n"
             "\t[SPACE] to pause/start\n"
@@ -324,6 +315,8 @@ class RegistrationVisualizer(StubVisualizer):
                             # # when evaluate please use copy data directory to your computer
                             instance_copy = copy.deepcopy(current_instance)
                             self.annotations_and_detections[self.frames_ID][annotation.track_uuid] = tuple((instance_copy, annotation))
+                            if current_instance.id not in self.get_track_uuid:
+                                self.get_track_uuid[current_instance.id] = annotation.track_uuid
                             break
             
             # print("self.annotations_and_detections", len(self.annotations_and_detections[self.frames_ID]))
@@ -382,10 +375,15 @@ class RegistrationVisualizer(StubVisualizer):
 
         # Show current instance
         for id, current_instance in current_instances.items():
-            # if current_instance.last_frame == self.frames_ID and current_instance.id in instance_id_list:
-            
+
+            track_uuid = self.get_track_uuid[current_instance.id]
+            if track_uuid not in self.extracted_pcds:
+                self.extracted_pcds[track_uuid] = {}
+
+            if current_instance.id not in self.extracted_pcds[track_uuid]:
+                self.extracted_pcds[track_uuid][current_instance.id] = {}
+
             if current_instance.last_frame == self.frames_ID:
-                ##################### VISUALIZAION ALL #####################
                 color_code = current_instance.color_code
                 if self.global_view:
                     bbox = current_instance.s_pose_ious[current_instance.last_frame]
@@ -447,59 +445,14 @@ class RegistrationVisualizer(StubVisualizer):
                         del self.not_found_instance[current_instance.id]
                     self.found_instance[current_instance.id] = current_instance.id
 
-                ##################### VISUALIZAION ALL #####################
-                
-                
-            #     ##################### VISUALIZAION SOME #####################
-            # # if current_instance.last_frame == self.frames_ID:
-            # if current_instance.last_frame == self.frames_ID and (self.frames_ID >= 900 and self.frames_ID <= 950) \
-            #     or (current_instance.id >= 1048 and current_instance.id <= 1147):
-            #     instance_id = current_instance.id
-            #     color_code = current_instance.color_code
-                
-            #     if self.global_view:
-            #         bbox = current_instance.g_pose_visuals[current_instance.last_frame]
-            #     else:
-            #         bbox = current_instance.s_pose_visuals[current_instance.last_frame]
-                    
-            #     line_set, box3d = translate_boxes_to_open3d_instance(bbox)
-            #     line_set.paint_uniform_color(color_code)
-            #     self.vis.add_geometry(line_set, reset_bounding_box=False)
-            #     self.visual_instances.append(line_set)
-                
-            #     #################### VISUALIZAION SOME #####################
-                
-                # #################### EXTRACT POINTS #####################
-                # # Get s_pose_visuals
-                # g_selected_bbox = current_instance.g_pose_visuals[current_instance.last_frame]
-                # s_selected_bbox = current_instance.s_pose_visuals[current_instance.last_frame]
-                # _, box3d = translate_boxes_to_open3d_instance(s_selected_bbox, True)
-                
-                # # Get s_source_points
-                # s_source_points = np.asarray(self.source.points)
-                # # source_points = np.hstack((np.asarray(self.source.points), np.ones((n.p.asarray(self.source.points).shape[0], 1))))
-                # # g_source_points = (pose @ source_points.T).T
-                # # g_source_points = g_source_points[:, :3]
-                
-                # # Create points
-                # pcd = o3d.geometry.PointCloud()
-                # # From numpy to Open3D
-                # pcd.points = o3d.utility.Vector3dVector(s_source_points)
+                # Extract points
+                source_points_sensor = np.asarray(self.source.points)
+                pcd = o3d.geometry.PointCloud()
+                pcd.points = o3d.utility.Vector3dVector(source_points_sensor)
+                idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
+                pcd_in_bbox = np.asarray(source_points_sensor)[idx_points, :]
+                self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID] = pcd_in_bbox
 
-                # # Get index 
-                # idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
-                
-                # # PCL in Bbox
-                # point_bbox = np.asarray(s_source_points)[idx_points, :]
-                # self.output_pcd_s[instance_id][self.frames_ID] = OutputPCD(point_bbox, g_selected_bbox, s_selected_bbox)
-                # #################### EXTRACT POINTS #####################
-                
-                # ##################### EXTRACT POINTS #####################
-                # filename = f'results/instance_association/new/PointCloud_KITTI21_Obj_ID_{instance_id}-test.npy'
-                # with open(filename, 'wb') as f:
-                #     np.save(f, np.array(self.output_pcd_s[instance_id], dtype=object), allow_pickle=True)
-                # ##################### EXTRACT POINTS #####################
-                
                 # #################### ADD MESH #####################
                 # # if current_instance.id in instance_id_list:
                 # instance_id = current_instance.id
@@ -530,7 +483,6 @@ class RegistrationVisualizer(StubVisualizer):
             del self.instances[current_instance_id]
         self.not_found_instance = copy.deepcopy(self.found_instance)
         self.found_instance = {}
-
 
         for current_instance_id, _ in self.not_found_instance_annotation.items():
             self.vis.remove_geometry(self.instances_gt[current_instance_id]['line_set'], reset_bounding_box=False)

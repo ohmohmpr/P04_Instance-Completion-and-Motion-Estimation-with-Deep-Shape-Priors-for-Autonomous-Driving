@@ -86,6 +86,8 @@ class OdometryPipeline:
         # Visualizer
         self.visualizer = RegistrationVisualizer() if visualize else StubVisualizer()
         self.visualizer.env = self._dataset.env
+        self.visualizer.part_id = self._dataset.part_id
+        self.visualizer.sequence_id = self._dataset.sequence_id
         self.visualizer.list_track_uuid = self._dataset.list_track_uuid
         if hasattr(self._dataset, "use_global_visualizer"):
             self.visualizer.global_view = self._dataset.use_global_visualizer
@@ -95,6 +97,7 @@ class OdometryPipeline:
         self._run_pipeline()
         self._run_evaluation()
         self._save_annotations_and_detections()
+        self._save_extracted_pcd()
         # self._create_output_dir()
         # self._write_result_poses()
         # self._write_gt_poses()
@@ -186,6 +189,16 @@ class OdometryPipeline:
             result_dir.mkdir(parents=True, exist_ok=True)
         if len(self._dataset.list_track_uuid) == 0:
             np.save(save_path, self.visualizer.annotations_and_detections, allow_pickle=True)
+            print("Save annotations_and_detections")
+
+    def _save_extracted_pcd(self):
+        if len(self.visualizer.list_track_uuid) > 0:
+            result_dir = self._dataset.result_dir / 'pcd' / self._dataset.part_id / self._dataset.sequence_id
+            if not result_dir.exists():
+                result_dir.mkdir(parents=True, exist_ok=True)
+            pcd = self.visualizer.extracted_pcds
+            np.save(f"{result_dir}/pcd.npy", pcd)
+            print("Save extracted_pcd")
 
     def _write_gt_poses(self):
         if not self.has_gt:

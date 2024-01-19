@@ -19,7 +19,7 @@
 |06*| | kiss_icp_pipeline --visualize ~/data/datasets/av2 results/OpenPCDet_PointRCNN/Argoverse2/004/004006.npy --dataloader argoverse2 --sequence 004006||
 |07| could be important | the ego-car waits at intersection and about to turn but can not track specific cars. | NO |
 |08| not important | can track only not-moving car | YES |
-|09| | ||
+|09| could be important | ego-car wait at junction and cars run in orthogonal direction | YES |
 |10| | ||
 |11| | ||
 |12| | ||
