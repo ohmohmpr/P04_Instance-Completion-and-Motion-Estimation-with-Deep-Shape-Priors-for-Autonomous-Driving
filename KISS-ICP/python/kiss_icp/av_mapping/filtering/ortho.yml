@@ -1,0 +1,11 @@
+filtering_z_point: true
+filtering_z_point_m: 20
+filtering_bbox_size: true
+bbox_size:
+  x_min_bbox: 0
+  x_max_bbox: 60
+  y_min_bbox: -80
+  y_max_bbox: 80
+vis:
+  get_view_control:
+    set_zoom: 0.15

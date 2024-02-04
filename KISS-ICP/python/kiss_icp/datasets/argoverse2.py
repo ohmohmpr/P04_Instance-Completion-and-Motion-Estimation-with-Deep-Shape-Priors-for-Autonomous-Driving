@@ -70,6 +70,11 @@ class Argoverse2Dataset:
             path = filtering['urban_tree_path']
             with open(path, 'r') as env_file:
                 env = yaml.safe_load(env_file)
+
+        elif self.sequence_id in filtering['ortho']:
+            path = filtering['ortho_path']
+            with open(path, 'r') as env_file:
+                env = yaml.safe_load(env_file)
         return env
 
     def _filtering_track_uuid(self):

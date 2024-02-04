@@ -1,4 +1,23 @@
 urban_tree:
+  - "000003"
+  - "000009"
   - "000016"
+  - "000021"
+  - "000039"
+  - "000049"
+  - "001035"
   - "004001"
+ortho:
+  - "000011"
+  - "000030"
+  - "001000"
+  - "001005"
+  - "001006"
+  - "001007"
+  - "001027"
+  - "001038"
+  - "001039"
+  - "001046"
 urban_tree_path: KISS-ICP/python/kiss_icp/av_mapping/filtering/urban_tree.yml
+ortho_path: KISS-ICP/python/kiss_icp/av_mapping/filtering/ortho.yml
+

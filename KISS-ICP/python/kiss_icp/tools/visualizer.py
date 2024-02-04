@@ -65,7 +65,7 @@ class RegistrationVisualizer(StubVisualizer):
 
         # Initialize GUI controls
         self.block_vis = True
-        self.play_crun = False
+        self.play_crun = True
         self.reset_bounding_box = True
 
         # Create data
@@ -330,7 +330,7 @@ class RegistrationVisualizer(StubVisualizer):
                     annotation.width_m, annotation.height_m,
                     annotation.dst_SE3_object.rotation)
 
-            line_set, box3d = translate_boxes_to_open3d_instance(bbox)
+            line_set, box3d = translate_boxes_to_open3d_instance(bbox, crop=True)
             line_set.paint_uniform_color((1, 0, 0))
 
             if annotation.track_uuid not in self.instances_gt:
@@ -382,14 +382,18 @@ class RegistrationVisualizer(StubVisualizer):
 
             if current_instance.id not in self.extracted_pcds[track_uuid]:
                 self.extracted_pcds[track_uuid][current_instance.id] = {}
+                
+            # if self.frames_ID not in self.extracted_pcds[track_uuid][self.frames_ID]:
+            self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID] = {}
+            print("track_uuid", track_uuid, current_instance.id)
 
             if current_instance.last_frame == self.frames_ID:
                 color_code = current_instance.color_code
                 if self.global_view:
-                    bbox = current_instance.s_pose_ious[current_instance.last_frame]
+                    bbox = current_instance.g_pose_visuals[current_instance.last_frame]
                 else:
                     bbox = current_instance.s_pose_visuals[current_instance.last_frame]
-                line_set, box3d = translate_boxes_to_open3d_instance(bbox)
+                line_set, box3d = translate_boxes_to_open3d_instance(bbox, crop=True)
                 line_set.paint_uniform_color(color_code)
 
                 if current_instance.id not in self.instances:
@@ -451,17 +455,24 @@ class RegistrationVisualizer(StubVisualizer):
                 pcd.points = o3d.utility.Vector3dVector(source_points_sensor)
                 idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
                 pcd_in_bbox = np.asarray(source_points_sensor)[idx_points, :]
-                self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID] = pcd_in_bbox
+                self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['T_cam_obj'] = mtx_T
+                pcd_in_bbox_eu = pcd_in_bbox[:, :3]
+                self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['pts_cam'] = pcd_in_bbox_eu
+                pts_cam_homo = np.hstack((pcd_in_bbox, np.ones((pcd_in_bbox.shape[0], 1))))
+                pts_obj = (np.linalg.inv(mtx_T) @ pts_cam_homo.T).T
+                pts_obj = pts_obj[:, :3]
+                self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['surface_points'] = pts_obj
+
+                r = R.from_matrix(bbox.rot)
+                bbox_euler = r.as_euler('zxy')[0]
+                self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['bbox'] = [bbox.x, bbox.y, bbox.z,
+                                                                        bbox.width, bbox.length, bbox.height, bbox_euler]
 
                 # #################### ADD MESH #####################
                 # # if current_instance.id in instance_id_list:
                 # instance_id = current_instance.id
                 # try:
-                #     mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/new/{instance_id}', "%d.ply" % self.frames_ID))
-                #     # mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}/{instance_id}-accumulated', "%d.ply" % self.frames_ID))
-                #     mesh.compute_vertex_normals()
-                    
-                #     if self.global_view:
+                #     mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}velo_pts
                 #         g_pose_path = np.load(f"results/deep_sdf/pose/new/g_pose_{instance_id}.npy", allow_pickle='TRUE').item()
                 #         # g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
                 #         op_pose = g_pose_path[self.frames_ID]

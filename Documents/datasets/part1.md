@@ -8,17 +8,17 @@
 
 |seq|results|remark|
 |--|--|--|
-|00| less interesting| no tracking car|
-|01|interesting| one or two opposite direction cars, at the end of seq, we can show how bad bbox are|
-|02|interesting| one or two opposite direction cars|
-|03|less interesting| one moving car but couldn't track over time|
-|04| less interesting| one moving car but couldn't track over time, might be interesting|
-|05|interesting| lot of cars|
-|06| not interesting| lots of car but cannot track over time|
-|07|interesting| one or two opposite direction cars, at the end of seq|
+|00| not important | no tracking car, urban environment |
+|01| could be important | a few car moves from opposite direction |
+|02| could be important | a lot of car moves from opposite direction |
+|03| less interesting |  one moving car but couldn't track over time|
+|04| not important | one moving car but couldn't track over time, might be interesting |
+|05| most important | cars move in many direction, NOT SURE THIS |
+|06| not interesting | lots of car but cannot track over time|
+|07| interesting | one or two opposite direction cars, at the end of seq|
 |08| not interesting| lots of car but cannot track over time|
-|09|interesting| one moving cars, THIS|
-|10|interesting| one moving cars, THIS|
+|09| interesting | one moving cars, THIS|
+|10| interesting | one moving cars, THIS|
 |11| less interesting| ego-car parks at an intersection and be able to observe twos orthogonal moving cars|
 |12|interesting| lot of oppsosite direction cars but can track for a few frames|
 |13|interesting| two or three moving cars|
@@ -29,7 +29,7 @@
 |18|could be important| cars on the opposite side of the road|
 |19|could be important| ego-car tunrs left|
 |20|could be important| detected one car moving in opposite direction for 6 frames|
-|21|important| one car is turning, could be a good example, THIS|
+|21| important | one car is turning, could be a good example, THIS|
 |22|nothing interesting| |
 |23|nothing interesting| one car turns at an intersection |
 |24|nothing interesting| |
@@ -39,7 +39,7 @@
 |28|could be important| detection fails on the car|
 |29|important| one moving car at the end of seq|
 |30|important| one moving car and turning|
-|31|interesting | lot of cars, THIS |
+|31|interesting | lot of cars, overtake one car but it doesn't move, THIS |
 |32|could be important | lot of cars, detection fails on the car |
 |33|important | lot of cars |
 |34|could be important | lot of cars |
