@@ -19,16 +19,16 @@
 |07| could be important | two leading car and one opposite car |
 |08| not important | ego-car stop at intersection |
 |09| not important | no interesting car |
-|10| | |
-|11| | |
-|12| | |
-|13| | |
+|10| not important | no interesting car |
+|11| not important | no interesting car |
+|12| not important | no interesting car |
+|13| most important | CANDIDATE |
 |14| not important | no interesting car |
-|15| | |
-|16| | |
+|15| could be important | one leading car |
+|16| could be important | one leading car, the is often wrong when turns |
 |17| not important | no interesting car |
 |18| not important | no interesting car |
-|19| | |
+|19| not important | no interesting car |
 |20| not important | no interesting car |
 |21| not important | no interesting car |
 |22| could be important | 3 turning cars |

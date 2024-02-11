@@ -65,7 +65,7 @@ class RegistrationVisualizer(StubVisualizer):
 
         # Initialize GUI controls
         self.block_vis = True
-        self.play_crun = True
+        self.play_crun = False
         self.reset_bounding_box = True
 
         # Create data
@@ -291,7 +291,7 @@ class RegistrationVisualizer(StubVisualizer):
 
         # Get current instance
         self.InstanceAssociation.update(ego_car_pose, boundingBoxes3D, self.frames_ID)
-        current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 3)
+        current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 8)
 
         # Filter instances by IOU between annotations and instances
         if True:
@@ -310,7 +310,7 @@ class RegistrationVisualizer(StubVisualizer):
                                                         annotation.dst_SE3_object.translation[2], annotation.length_m, 
                                                         annotation.width_m, annotation.height_m,
                                                         annotation.dst_SE3_object.rotation)
-                        if iou_3d(annotation_bbox.iou, detected_bbox) > 0:
+                        if iou_3d(annotation_bbox.iou, detected_bbox) > 0.3:
                             new_current_instances[id] = current_instance
                             # # when evaluate please use copy data directory to your computer
                             instance_copy = copy.deepcopy(current_instance)
@@ -319,7 +319,7 @@ class RegistrationVisualizer(StubVisualizer):
                                 self.get_track_uuid[current_instance.id] = annotation.track_uuid
                             break
             
-            # print("self.annotations_and_detections", len(self.annotations_and_detections[self.frames_ID]))
+            print("self.annotations_and_detections", len(self.annotations_and_detections[self.frames_ID]))
             current_instances = new_current_instances
 
         # Show annotation
@@ -512,7 +512,7 @@ class RegistrationVisualizer(StubVisualizer):
             self.vis.reset_view_point(True)
             self.reset_bounding_box = False
 
-        # Adjust a view -> ohm editor zoom keep changing view 
+        # # Adjust a view -> ohm editor zoom keep changing view 
         # if self.env != None:
         #     self.vis.get_view_control().set_zoom(self.env['vis']['get_view_control']['set_zoom'])
 

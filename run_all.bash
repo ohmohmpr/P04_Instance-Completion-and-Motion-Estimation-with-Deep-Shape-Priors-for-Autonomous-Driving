@@ -12,3 +12,4 @@ kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/A
 kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/001/001035.npy --dataloader argoverse2 --sequence 001035
 kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/001/001038.npy --dataloader argoverse2 --sequence 001038
 kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/001/001039.npy --dataloader argoverse2 --sequence 001039
+kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/001/001046.npy --dataloader argoverse2 --sequence 001046
