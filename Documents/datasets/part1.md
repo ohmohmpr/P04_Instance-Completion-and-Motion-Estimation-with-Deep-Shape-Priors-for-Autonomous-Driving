@@ -38,7 +38,7 @@
 |27|could be important| one moving car at the end of seq|
 |28|could be important| detection fails on the car|
 |29|important| one moving car at the end of seq|
-|30|important| one moving car and turning|
+|30|important - shaky no | one moving car and turning|
 |31|interesting | lot of cars, overtake one car but it doesn't move, THIS |
 |32|could be important | lot of cars, detection fails on the car |
 |33|important | lot of cars |
@@ -49,7 +49,7 @@
 |38| important | parking cars for this is a good example of how bbox are bad |
 |39| important | This is the best one. THIS |
 |40| not important | no cars in this scene |
-|41| could be important | parking at intersection  a good example of how bbox are bad|
+|41| could be important - shaky no| parking at intersection  a good example of how bbox are bad|
 |42| could be important  | a good example of how bbox are bad |
 |43| important, not sure  | like silom road |
 |44| could be important  | detected car at the end of seq |
@@ -57,4 +57,4 @@
 |46| important  | lots of cars, something fail here because gt does not perfectly alging with point cloud |
 |47| important  | lots of cars but they are parking cars |
 |48| important  | no moving cars in the first half adn moving in the second half, 3D detection couldn't detect the turning cars. |
-|49| very important  | lots of cars |
+|49| very important - shaky no | lots of cars |

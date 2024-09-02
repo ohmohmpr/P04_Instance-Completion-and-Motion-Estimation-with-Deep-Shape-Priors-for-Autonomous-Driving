@@ -9,9 +9,9 @@
 
 |seq|results|remark|
 |--|--|--|
-|00| most important | THIS, turning left car |
-|01| could be important | |
-|02| could be important |  |
+|00| most important - shaky no | THIS, turning left car |
+|01| could be important - shaky no | |
+|02| could be important - shaky no |  |
 |03| not important | 3D detection failed surprisingly |
 |04| could be important | two leading car and one opposite car|
 |05| most important | one turning car, need to use 5 frames associations |

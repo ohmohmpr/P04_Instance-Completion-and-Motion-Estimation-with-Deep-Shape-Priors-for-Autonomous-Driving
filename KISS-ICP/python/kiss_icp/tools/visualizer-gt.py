@@ -31,7 +31,7 @@ from typing import Callable, List, Tuple
 
 import numpy as np
 import open3d as o3d
-from kiss_icp.tools.utils import translate_boxes_to_open3d_instance, InstanceAssociation, color_table
+from kiss_icp.tools.utils import translate_boxes_to_open3d_instance, InstanceAssociation
 from kiss_icp.tools.utils_class import BoundingBox3D, OutputPCD
 from kiss_icp.tools.annotations import filter_annotations, filter_bboxes
 from scipy.spatial.transform import Rotation as R
@@ -40,6 +40,7 @@ YELLOW = np.array([1, 0.706, 0])
 RED = np.array([128, 0, 0]) / 255.0
 BLACK = np.array([0, 0, 0]) / 255.0
 BLUE = np.array([0.4, 0.5, 0.9])
+GREEN =  np.array([0, 1, 0])
 SPHERE_SIZE = 0.20
 
 save_mesh_dir = "results/deep_sdf/mesh"
@@ -78,8 +79,7 @@ class RegistrationVisualizer(StubVisualizer):
         self.InstanceAssociation = InstanceAssociation()
         self.frames_ID = -1
         self.extracted_pcds = {}
-        self.mesh = None
-        self.axis_gt_opt = None
+        self.meshs = []
         self.instances = {}
         self.instances_gt = {}
 
@@ -292,7 +292,7 @@ class RegistrationVisualizer(StubVisualizer):
 
         # Get current instance
         self.InstanceAssociation.update(ego_car_pose, boundingBoxes3D, self.frames_ID)
-        current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 8)
+        current_instances = self.InstanceAssociation.get_current_instances(self.frames_ID, 3)
 
         # Filter instances by IOU between annotations and instances
         if True:
@@ -326,6 +326,16 @@ class RegistrationVisualizer(StubVisualizer):
         # Show annotation
         for annotation in annotation_BBox3D:
 
+            track_uuid = '1d33dc72-e987-4140-9a7f-b653b2d3b41d'
+            if track_uuid not in self.extracted_pcds:
+                self.extracted_pcds[track_uuid] = {}
+
+            if 1 not in self.extracted_pcds[track_uuid]:
+                self.extracted_pcds[track_uuid][1] = {}
+                
+            # if self.frames_ID not in self.extracted_pcds[track_uuid][self.frames_ID]:
+            self.extracted_pcds[track_uuid][1][self.frames_ID] = {}
+
             bbox = BoundingBox3D(annotation.dst_SE3_object.translation[0], annotation.dst_SE3_object.translation[1],
                     annotation.dst_SE3_object.translation[2], annotation.length_m, 
                     annotation.width_m, annotation.height_m,
@@ -340,12 +350,12 @@ class RegistrationVisualizer(StubVisualizer):
                 mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
                 mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
 
-                # self.vis.add_geometry(line_set, reset_bounding_box=False)
-
-                axis_car = o3d.geometry.TriangleMesh.create_coordinate_frame(size=10.0, origin=[0, 0, 0])
+                axis_car = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5.0, origin=[0, 0, 0])
                 # Update Attribute
                 axis_car.transform(mtx_T)
                 self.vis.add_geometry(axis_car, reset_bounding_box=False)
+                
+                self.vis.add_geometry(line_set, reset_bounding_box=False)
 
                 # Store
                 self.instances_gt[annotation.track_uuid] = {}
@@ -370,7 +380,7 @@ class RegistrationVisualizer(StubVisualizer):
                 
                 line_set.transform(mtx_T_sensor)
                 self.vis.update_geometry(line_set)
-
+                
                 axis_car = self.instances_gt[annotation.track_uuid]['axis_car']
                 axis_car.transform(mtx_T_sensor)
                 self.vis.update_geometry(axis_car)
@@ -385,164 +395,142 @@ class RegistrationVisualizer(StubVisualizer):
                     del self.not_found_instance_annotation[annotation.track_uuid]
                 self.found_instance_annotation[annotation.track_uuid] = annotation.track_uuid
 
-        self.vis.remove_geometry(self.mesh, reset_bounding_box=False)
-        self.vis.remove_geometry(self.axis_gt_opt, reset_bounding_box=False)
+
+            # Extract points
+            source_points_sensor = np.asarray(self.source.points)
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(source_points_sensor)
+            idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
+            pcd_in_bbox = np.asarray(source_points_sensor)[idx_points, :]
+            self.extracted_pcds[annotation.track_uuid][1][self.frames_ID]['T_cam_obj'] = self.instances_gt[annotation.track_uuid]['mtx_T']
+            print("self.", self.extracted_pcds[annotation.track_uuid][1][self.frames_ID]['T_cam_obj'])
+            pcd_in_bbox_eu = pcd_in_bbox[:, :3]
+            self.extracted_pcds[annotation.track_uuid][1][self.frames_ID]['pts_cam'] = pcd_in_bbox_eu
+            pts_cam_homo = np.hstack((pcd_in_bbox, np.ones((pcd_in_bbox.shape[0], 1))))
+            pts_obj = (np.linalg.inv(mtx_T) @ pts_cam_homo.T).T
+            pts_obj = pts_obj[:, :3]
+            self.extracted_pcds[annotation.track_uuid][1][self.frames_ID]['surface_points'] = pts_obj
+
+            r = R.from_matrix(bbox.rot)
+            bbox_euler = r.as_euler('zxy')[0]
+            self.extracted_pcds[annotation.track_uuid][1][self.frames_ID]['bbox'] = [bbox.x, bbox.y, bbox.z,
+                                                                    bbox.width, bbox.length, bbox.height, bbox_euler]
+            print("self", len(self.extracted_pcds[annotation.track_uuid][1]))
+
         # Show current instance
-        for id, current_instance in current_instances.items():
+        # for id, current_instance in current_instances.items():
 
-            track_uuid = self.get_track_uuid[current_instance.id]
-            if track_uuid not in self.extracted_pcds:
-                self.extracted_pcds[track_uuid] = {}
+        #     # track_uuid = self.get_track_uuid[current_instance.id]
+        #     # if track_uuid not in self.extracted_pcds:
+        #     #     self.extracted_pcds[track_uuid] = {}
 
-            if current_instance.id not in self.extracted_pcds[track_uuid]:
-                self.extracted_pcds[track_uuid][current_instance.id] = {}
+        #     # if current_instance.id not in self.extracted_pcds[track_uuid]:
+        #     #     self.extracted_pcds[track_uuid][current_instance.id] = {}
                 
-            # if self.frames_ID not in self.extracted_pcds[track_uuid][self.frames_ID]:
-            self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID] = {}
-            print("track_uuid", track_uuid, current_instance.id)
+        #     # # if self.frames_ID not in self.extracted_pcds[track_uuid][self.frames_ID]:
+        #     # self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID] = {}
+        #     # print("track_uuid", track_uuid, current_instance.id)
 
-            if current_instance.last_frame == self.frames_ID:
-                color_code = current_instance.color_code
-                if self.global_view:
-                    bbox = current_instance.g_pose_visuals[current_instance.last_frame]
-                else:
-                    bbox = current_instance.s_pose_visuals[current_instance.last_frame]
-                line_set, box3d = translate_boxes_to_open3d_instance(bbox, crop=True)
-                line_set.paint_uniform_color(color_code)
+        #     if current_instance.last_frame == self.frames_ID:
+        #         color_code = GREEN
+        #         if self.global_view:
+        #             bbox = current_instance.g_pose_visuals[current_instance.last_frame]
+        #         else:
+        #             bbox = current_instance.s_pose_visuals[current_instance.last_frame]
+        #         line_set, box3d = translate_boxes_to_open3d_instance(bbox, crop=True)
+        #         line_set.paint_uniform_color(color_code)
 
-                
-                if current_instance.id not in self.instances:
-                    # Create matrix
-                    mtx_t = np.array([bbox.x , bbox.y, bbox.z]).T
-                    mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
-                    mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
+        #         if current_instance.id not in self.instances:
+        #             # Create matrix
+        #             mtx_t = np.array([bbox.x , bbox.y, bbox.z]).T
+        #             mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
+        #             mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
 
-                    # Create Attribute
-                    axis_car = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5.0, origin=[0, 0, 0])
+        #             # Create Attribute
+        #             axis_car = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5.0, origin=[0, 0, 0])
 
-                    # Update Attribute
-                    axis_car_gtopt = o3d.geometry.TriangleMesh.create_coordinate_frame(size=8.0, origin=[0, 0, 0])
-                    mtx_T_gtopt = np.load(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/pose/{self.frames_ID}.npy")
-                    scale = np.sqrt(mtx_T_gtopt[0, 0]**2 + mtx_T_gtopt[1, 0]**2 + mtx_T_gtopt[2, 0]**2)
-                    mtx_T_gtopt[:3, :3] = mtx_T_gtopt[:3, :3] / scale
+        #             # Update Attribute
+        #             axis_car.transform(mtx_T)
+        #             # self.vis.add_geometry(axis_car, reset_bounding_box=False)
+        #             # self.vis.add_geometry(line_set, reset_bounding_box=False)
 
-                    print(mtx_T_gtopt)
-                    axis_car_gtopt.transform(mtx_T_gtopt)
-                    self.axis_gt_opt = axis_car_gtopt
-                    self.vis.add_geometry(axis_car_gtopt, reset_bounding_box=False)
+        #             # Store
+        #             self.instances[current_instance.id] = {}
+        #             self.instances[current_instance.id]['axis_car'] = axis_car
+        #             self.instances[current_instance.id]['line_set'] = line_set
+        #             self.instances[current_instance.id]['mtx_T'] = mtx_T
+        #             self.instances[current_instance.id]['last_frame'] = self.frames_ID
 
-                    axis_car.transform(mtx_T)
-                    self.vis.add_geometry(axis_car, reset_bounding_box=False)
-                    # self.vis.add_geometry(line_set, reset_bounding_box=False)
+        #             if current_instance.id in self.not_found_instance:
+        #                 del self.not_found_instance[current_instance.id]
+        #             self.found_instance[current_instance.id] = current_instance.id
 
-                    # Store
-                    self.instances[current_instance.id] = {}
-                    self.instances[current_instance.id]['axis_car'] = axis_car
-                    self.instances[current_instance.id]['line_set'] = line_set
-                    self.instances[current_instance.id]['mtx_T'] = mtx_T
-                    self.instances[current_instance.id]['last_frame'] = self.frames_ID
+        #         else:
+        #             # Create matrix
+        #             mtx_t = np.array([bbox.x , bbox.y, bbox.z]).T
+        #             mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
+        #             mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
 
-                    if current_instance.id in self.not_found_instance:
-                        del self.not_found_instance[current_instance.id]
-                    self.found_instance[current_instance.id] = current_instance.id
-                    mesh = o3d.io.read_triangle_mesh(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/mesh/{self.frames_ID}.ply")
-                    path = Path(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/mesh/{self.frames_ID}.ply")
-                    if path.exists():
-                        print("path", path)
-                        mesh.compute_vertex_normals()
-                        mesh.paint_uniform_color(BLUE)
-                        mesh.translate([0, 0, -0.1])
-                        self.vis.add_geometry(mesh, reset_bounding_box=False)
-                        self.mesh = mesh
-
-                else:
-                    # Create matrix
-                    mtx_t = np.array([bbox.x , bbox.y, bbox.z]).T
-                    mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
-                    mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
-
-                    # Get Attribute
-                    axis_car = self.instances[current_instance.id]['axis_car']
-                    line_set = self.instances[current_instance.id]['line_set']
-                    prev_mtx_T = self.instances[current_instance.id]['mtx_T']
-                    mtx_T_sensor = mtx_T @ np.linalg.inv(prev_mtx_T)
+        #             # Get Attribute
+        #             axis_car = self.instances[current_instance.id]['axis_car']
+        #             line_set = self.instances[current_instance.id]['line_set']
+        #             prev_mtx_T = self.instances[current_instance.id]['mtx_T']
+        #             mtx_T_sensor = mtx_T @ np.linalg.inv(prev_mtx_T)
                     
-                    # Update Attribute
-                    axis_car.transform(mtx_T_sensor)
-                    self.vis.update_geometry(axis_car)
-                    line_set.transform(mtx_T_sensor)
-                    self.vis.update_geometry(line_set)
+        #             # Update Attribute
+        #             axis_car.transform(mtx_T_sensor)
+        #             self.vis.update_geometry(axis_car)
+        #             line_set.transform(mtx_T_sensor)
+        #             self.vis.update_geometry(line_set)
 
-
-                    axis_car_gtopt = o3d.geometry.TriangleMesh.create_coordinate_frame(size=8.0, origin=[0, 0, 0])
-                    mtx_T_gtopt = np.load(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/pose/{self.frames_ID}.npy")
-                    scale = np.sqrt(mtx_T_gtopt[0, 0]**2 + mtx_T_gtopt[1, 0]**2 + mtx_T_gtopt[2, 0]**2)
-                    mtx_T_gtopt[:3, :3] = mtx_T_gtopt[:3, :3] / scale
+        #             # Store
+        #             self.instances[current_instance.id]['axis_car'] = axis_car
+        #             self.instances[current_instance.id]['line_set'] = line_set
+        #             self.instances[current_instance.id]['mtx_T'] = mtx_T
+        #             self.instances[current_instance.id]['last_frame'] = self.frames_ID
                     
-                    print(mtx_T_gtopt)
-                    axis_car_gtopt.transform(mtx_T_gtopt)
-                    self.axis_gt_opt = axis_car_gtopt
-                    self.vis.add_geometry(axis_car_gtopt, reset_bounding_box=False)
+        #             if current_instance.id in self.not_found_instance:
+        #                 del self.not_found_instance[current_instance.id]
+        #             self.found_instance[current_instance.id] = current_instance.id
 
+        #         # # Extract points
+        #         # source_points_sensor = np.asarray(self.source.points)
+        #         # pcd = o3d.geometry.PointCloud()
+        #         # pcd.points = o3d.utility.Vector3dVector(source_points_sensor)
+        #         # idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
+        #         # pcd_in_bbox = np.asarray(source_points_sensor)[idx_points, :]
+        #         # self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['T_cam_obj'] = mtx_T
+        #         # pcd_in_bbox_eu = pcd_in_bbox[:, :3]
+        #         # self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['pts_cam'] = pcd_in_bbox_eu
+        #         # pts_cam_homo = np.hstack((pcd_in_bbox, np.ones((pcd_in_bbox.shape[0], 1))))
+        #         # pts_obj = (np.linalg.inv(mtx_T) @ pts_cam_homo.T).T
+        #         # pts_obj = pts_obj[:, :3]
+        #         # self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['surface_points'] = pts_obj
 
-                    # Store
-                    self.instances[current_instance.id]['axis_car'] = axis_car
-                    self.instances[current_instance.id]['line_set'] = line_set
-                    self.instances[current_instance.id]['mtx_T'] = mtx_T
-                    self.instances[current_instance.id]['last_frame'] = self.frames_ID
-                    
-                    if current_instance.id in self.not_found_instance:
-                        del self.not_found_instance[current_instance.id]
-                    self.found_instance[current_instance.id] = current_instance.id
+        #         # r = R.from_matrix(bbox.rot)
+        #         # bbox_euler = r.as_euler('zxy')[0]
+        #         # self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['bbox'] = [bbox.x, bbox.y, bbox.z,
+        #         #                                                         bbox.width, bbox.length, bbox.height, bbox_euler]
 
-                    mesh = o3d.io.read_triangle_mesh(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/mesh/{self.frames_ID}.ply")
-                    path = Path(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/mesh/{self.frames_ID}.ply")
-                    if path.exists():
-                        print("path", path)
-                        mesh.compute_vertex_normals()
-                        mesh.paint_uniform_color(BLUE)
-                        mesh.translate([0, 0, -0.1])
-                        self.vis.add_geometry(mesh, reset_bounding_box=False)
-                        self.mesh = mesh
-
-                # Extract points
-                source_points_sensor = np.asarray(self.source.points)
-                pcd = o3d.geometry.PointCloud()
-                pcd.points = o3d.utility.Vector3dVector(source_points_sensor)
-                idx_points = box3d.get_point_indices_within_bounding_box(pcd.points)
-                pcd_in_bbox = np.asarray(source_points_sensor)[idx_points, :]
-                self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['T_cam_obj'] = mtx_T
-                pcd_in_bbox_eu = pcd_in_bbox[:, :3]
-                self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['pts_cam'] = pcd_in_bbox_eu
-                pts_cam_homo = np.hstack((pcd_in_bbox, np.ones((pcd_in_bbox.shape[0], 1))))
-                pts_obj = (np.linalg.inv(mtx_T) @ pts_cam_homo.T).T
-                pts_obj = pts_obj[:, :3]
-                self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['surface_points'] = pts_obj
-
-                r = R.from_matrix(bbox.rot)
-                bbox_euler = r.as_euler('zxy')[0]
-                self.extracted_pcds[track_uuid][current_instance.id][self.frames_ID]['bbox'] = [bbox.x, bbox.y, bbox.z,
-                                                                        bbox.width, bbox.length, bbox.height, bbox_euler]
-
-                # #################### ADD MESH #####################
-                # # if current_instance.id in instance_id_list:
-                # instance_id = current_instance.id
-                # try:
-                #     mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}velo_pts
-                #         g_pose_path = np.load(f"results/deep_sdf/pose/new/g_pose_{instance_id}.npy", allow_pickle='TRUE').item()
-                #         # g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
-                #         op_pose = g_pose_path[self.frames_ID]
-                #     else:
-                #         s_pose_path = np.load(f"results/deep_sdf/pose/new/s_pose_{instance_id}.npy", allow_pickle='TRUE').item()
-                #         # s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
-                #         op_pose = s_pose_path[self.frames_ID]
-                #     mesh.transform(op_pose)
-                #     mesh.paint_uniform_color(color_code)
-                #     self.vis.add_geometry(mesh, reset_bounding_box=False)
-                #     self.meshs.append(mesh)
-                # except:
-                #     pass
-                # #################### ADD MESH #####################
+        #         # #################### ADD MESH #####################
+        #         # # if current_instance.id in instance_id_list:
+        #         # instance_id = current_instance.id
+        #         # try:
+        #         #     mesh = o3d.io.read_triangle_mesh(os.path.join(f'{save_mesh_dir}velo_pts
+        #         #         g_pose_path = np.load(f"results/deep_sdf/pose/new/g_pose_{instance_id}.npy", allow_pickle='TRUE').item()
+        #         #         # g_pose_path = np.load(f"results/deep_sdf/pose/g_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
+        #         #         op_pose = g_pose_path[self.frames_ID]
+        #         #     else:
+        #         #         s_pose_path = np.load(f"results/deep_sdf/pose/new/s_pose_{instance_id}.npy", allow_pickle='TRUE').item()
+        #         #         # s_pose_path = np.load(f"results/deep_sdf/pose/s_pose_{instance_id}_accumulated.npy", allow_pickle='TRUE').item()
+        #         #         op_pose = s_pose_path[self.frames_ID]
+        #         #     mesh.transform(op_pose)
+        #         #     mesh.paint_uniform_color(color_code)
+        #         #     self.vis.add_geometry(mesh, reset_bounding_box=False)
+        #         #     self.meshs.append(mesh)
+        #         # except:
+        #         #     pass
+        #         # #################### ADD MESH #####################
 
         for current_instance_id, _ in self.not_found_instance.items():
             self.vis.remove_geometry(self.instances[current_instance_id]['axis_car'], reset_bounding_box=False)

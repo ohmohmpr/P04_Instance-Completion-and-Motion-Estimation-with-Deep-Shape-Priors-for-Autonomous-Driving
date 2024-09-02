@@ -62,7 +62,7 @@ and add groud truth pose.
 conda activate av2
 
 kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/KITTI/21_01.npy --dataloader argoverse2 --sequence 001000 --generate_pcd # 1. extract point cloud first 
-# 3. show results
+kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/Argoverse2/000/000026.npy --dataloader argoverse2 --sequence 000026 # 3. show results
 
 
 # Part 2 in flash drive

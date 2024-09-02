@@ -1,5 +1,5 @@
 filtering_z_point: true
-filtering_z_point_m: 3
+filtering_z_point_m: 5
 filtering_bbox_size: true
 bbox_size:
   x_min_bbox: 0

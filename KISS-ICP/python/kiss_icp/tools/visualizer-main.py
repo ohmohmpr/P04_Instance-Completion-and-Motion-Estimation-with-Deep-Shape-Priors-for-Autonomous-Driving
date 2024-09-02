@@ -31,7 +31,7 @@ from typing import Callable, List, Tuple
 
 import numpy as np
 import open3d as o3d
-from kiss_icp.tools.utils import translate_boxes_to_open3d_instance, InstanceAssociation, color_table
+from kiss_icp.tools.utils import translate_boxes_to_open3d_instance, InstanceAssociation
 from kiss_icp.tools.utils_class import BoundingBox3D, OutputPCD
 from kiss_icp.tools.annotations import filter_annotations, filter_bboxes
 from scipy.spatial.transform import Rotation as R
@@ -78,8 +78,7 @@ class RegistrationVisualizer(StubVisualizer):
         self.InstanceAssociation = InstanceAssociation()
         self.frames_ID = -1
         self.extracted_pcds = {}
-        self.mesh = None
-        self.axis_gt_opt = None
+        self.meshs = []
         self.instances = {}
         self.instances_gt = {}
 
@@ -128,8 +127,8 @@ class RegistrationVisualizer(StubVisualizer):
         w_name = self.__class__.__name__
         self.vis.create_window(window_name=w_name, width=1920, height=1080)
         self.vis.add_geometry(self.source)
-        # self.vis.add_geometry(self.keypoints)
-        # self.vis.add_geometry(self.target)
+        self.vis.add_geometry(self.keypoints)
+        self.vis.add_geometry(self.target)
         self._set_black_background(self.vis)
         self.vis.get_render_option().point_size = 2
         self.vis.get_render_option().line_width = 20 # THIS DOES NOT WORK
@@ -340,19 +339,13 @@ class RegistrationVisualizer(StubVisualizer):
                 mtx_T33 = np.hstack((bbox.rot, mtx_t[..., np.newaxis]))
                 mtx_T = np.vstack((mtx_T33, np.array([0, 0, 0, 1])))
 
-                # self.vis.add_geometry(line_set, reset_bounding_box=False)
-
-                axis_car = o3d.geometry.TriangleMesh.create_coordinate_frame(size=10.0, origin=[0, 0, 0])
-                # Update Attribute
-                axis_car.transform(mtx_T)
-                self.vis.add_geometry(axis_car, reset_bounding_box=False)
+                self.vis.add_geometry(line_set, reset_bounding_box=False)
 
                 # Store
                 self.instances_gt[annotation.track_uuid] = {}
                 self.instances_gt[annotation.track_uuid]['line_set'] = line_set
                 self.instances_gt[annotation.track_uuid]['mtx_T'] = mtx_T
                 self.instances_gt[annotation.track_uuid]['last_frame'] = self.frames_ID
-                self.instances_gt[annotation.track_uuid]['axis_car'] = axis_car
 
                 if annotation.track_uuid in self.not_found_instance_annotation:
                     del self.not_found_instance_annotation[annotation.track_uuid]
@@ -371,22 +364,15 @@ class RegistrationVisualizer(StubVisualizer):
                 line_set.transform(mtx_T_sensor)
                 self.vis.update_geometry(line_set)
 
-                axis_car = self.instances_gt[annotation.track_uuid]['axis_car']
-                axis_car.transform(mtx_T_sensor)
-                self.vis.update_geometry(axis_car)
-
                 # Store
                 self.instances_gt[annotation.track_uuid]['line_set'] = line_set
                 self.instances_gt[annotation.track_uuid]['mtx_T'] = mtx_T
                 self.instances_gt[annotation.track_uuid]['last_frame'] = self.frames_ID
-                self.instances_gt[annotation.track_uuid]['axis_car'] = axis_car
                 
                 if annotation.track_uuid in self.not_found_instance_annotation:
                     del self.not_found_instance_annotation[annotation.track_uuid]
                 self.found_instance_annotation[annotation.track_uuid] = annotation.track_uuid
 
-        self.vis.remove_geometry(self.mesh, reset_bounding_box=False)
-        self.vis.remove_geometry(self.axis_gt_opt, reset_bounding_box=False)
         # Show current instance
         for id, current_instance in current_instances.items():
 
@@ -410,7 +396,6 @@ class RegistrationVisualizer(StubVisualizer):
                 line_set, box3d = translate_boxes_to_open3d_instance(bbox, crop=True)
                 line_set.paint_uniform_color(color_code)
 
-                
                 if current_instance.id not in self.instances:
                     # Create matrix
                     mtx_t = np.array([bbox.x , bbox.y, bbox.z]).T
@@ -421,19 +406,9 @@ class RegistrationVisualizer(StubVisualizer):
                     axis_car = o3d.geometry.TriangleMesh.create_coordinate_frame(size=5.0, origin=[0, 0, 0])
 
                     # Update Attribute
-                    axis_car_gtopt = o3d.geometry.TriangleMesh.create_coordinate_frame(size=8.0, origin=[0, 0, 0])
-                    mtx_T_gtopt = np.load(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/pose/{self.frames_ID}.npy")
-                    scale = np.sqrt(mtx_T_gtopt[0, 0]**2 + mtx_T_gtopt[1, 0]**2 + mtx_T_gtopt[2, 0]**2)
-                    mtx_T_gtopt[:3, :3] = mtx_T_gtopt[:3, :3] / scale
-
-                    print(mtx_T_gtopt)
-                    axis_car_gtopt.transform(mtx_T_gtopt)
-                    self.axis_gt_opt = axis_car_gtopt
-                    self.vis.add_geometry(axis_car_gtopt, reset_bounding_box=False)
-
                     axis_car.transform(mtx_T)
                     self.vis.add_geometry(axis_car, reset_bounding_box=False)
-                    # self.vis.add_geometry(line_set, reset_bounding_box=False)
+                    self.vis.add_geometry(line_set, reset_bounding_box=False)
 
                     # Store
                     self.instances[current_instance.id] = {}
@@ -445,15 +420,6 @@ class RegistrationVisualizer(StubVisualizer):
                     if current_instance.id in self.not_found_instance:
                         del self.not_found_instance[current_instance.id]
                     self.found_instance[current_instance.id] = current_instance.id
-                    mesh = o3d.io.read_triangle_mesh(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/mesh/{self.frames_ID}.ply")
-                    path = Path(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/mesh/{self.frames_ID}.ply")
-                    if path.exists():
-                        print("path", path)
-                        mesh.compute_vertex_normals()
-                        mesh.paint_uniform_color(BLUE)
-                        mesh.translate([0, 0, -0.1])
-                        self.vis.add_geometry(mesh, reset_bounding_box=False)
-                        self.mesh = mesh
 
                 else:
                     # Create matrix
@@ -473,18 +439,6 @@ class RegistrationVisualizer(StubVisualizer):
                     line_set.transform(mtx_T_sensor)
                     self.vis.update_geometry(line_set)
 
-
-                    axis_car_gtopt = o3d.geometry.TriangleMesh.create_coordinate_frame(size=8.0, origin=[0, 0, 0])
-                    mtx_T_gtopt = np.load(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/pose/{self.frames_ID}.npy")
-                    scale = np.sqrt(mtx_T_gtopt[0, 0]**2 + mtx_T_gtopt[1, 0]**2 + mtx_T_gtopt[2, 0]**2)
-                    mtx_T_gtopt[:3, :3] = mtx_T_gtopt[:3, :3] / scale
-                    
-                    print(mtx_T_gtopt)
-                    axis_car_gtopt.transform(mtx_T_gtopt)
-                    self.axis_gt_opt = axis_car_gtopt
-                    self.vis.add_geometry(axis_car_gtopt, reset_bounding_box=False)
-
-
                     # Store
                     self.instances[current_instance.id]['axis_car'] = axis_car
                     self.instances[current_instance.id]['line_set'] = line_set
@@ -494,16 +448,6 @@ class RegistrationVisualizer(StubVisualizer):
                     if current_instance.id in self.not_found_instance:
                         del self.not_found_instance[current_instance.id]
                     self.found_instance[current_instance.id] = current_instance.id
-
-                    mesh = o3d.io.read_triangle_mesh(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/mesh/{self.frames_ID}.ply")
-                    path = Path(f"/home/ohmpr/master_bonn/Modules/3rd_semester/P02/sandbox/Deep_SDF_Debug/mesh/{self.frames_ID}.ply")
-                    if path.exists():
-                        print("path", path)
-                        mesh.compute_vertex_normals()
-                        mesh.paint_uniform_color(BLUE)
-                        mesh.translate([0, 0, -0.1])
-                        self.vis.add_geometry(mesh, reset_bounding_box=False)
-                        self.mesh = mesh
 
                 # Extract points
                 source_points_sensor = np.asarray(self.source.points)
