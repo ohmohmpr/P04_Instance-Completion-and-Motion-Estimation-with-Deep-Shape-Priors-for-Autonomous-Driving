@@ -6,6 +6,11 @@ Accurate pose estimation of surrounding vehicles is crucial for robust autonomou
 
 ## Result
 
+![](https://github.com/ohmohmpr/P04_Instance-Completion-and-Motion-Estimation-with-Deep-Shape-Priors-for-Autonomous-Driving/blob/main/img/joint_optimization.gif)
+
 ![](https://github.com/ohmohmpr/P04_Instance-Completion-and-Motion-Estimation-with-Deep-Shape-Priors-for-Autonomous-Driving/blob/main/img/mesh_vs_det_vs_gt.gif)
 
 ![](https://github.com/ohmohmpr/P04_Instance-Completion-and-Motion-Estimation-with-Deep-Shape-Priors-for-Autonomous-Driving/blob/main/img/blue_car_in_a_scene.gif)
+
+
+![](https://github.com/ohmohmpr/P04_Instance-Completion-and-Motion-Estimation-with-Deep-Shape-Priors-for-Autonomous-Driving/blob/main/img/cars_in_kitti.gif)
