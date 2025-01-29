@@ -69,6 +69,23 @@ kiss_icp_pipeline --visualize ~/data/datasets/av2/ results/OpenPCDet_PointRCNN/A
 kiss_icp_pipeline --visualize /media/ohmpr/OHM_1TB/data/datasets/av2 results/OpenPCDet_PointRCNN/KITTI/21_01.npy --dataloader argoverse2 --sequence 002000 # 1. extract point cloud first 
 ```
 
+```
+# conda environments:
+#
+base                     /home/ohmpr/anaconda3
+av2py3.10                /home/ohmpr/anaconda3/envs/av2py3.10
+                         /home/ohmpr/anaconda3/envs/av2py3.10/envs/av2
+carlapy3.8               /home/ohmpr/anaconda3/envs/carlapy3.8
+deep_sdf_debug           /home/ohmpr/anaconda3/envs/deep_sdf_debug
+msr_p                    /home/ohmpr/anaconda3/envs/msr_p
+
+typically you activate /home/ohmpr/anaconda3/envs/av2py3.10/envs/av2
+so, if you want to develop further, you need to figure out how to install this environment
+and you need to clone av2_api.
+another thing i delete results/pcd_argo and results/pcd because extract point cloud and put
+in your computer is stupid you need to write a proper code.
+good luck to you, the future me.
+```
 3D detection
 
 ```sh
