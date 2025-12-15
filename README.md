@@ -41,7 +41,7 @@ KITTI dataset
 ![](https://github.com/ohmohmpr/P04_Instance-Completion-and-Motion-Estimation-with-Deep-Shape-Priors-for-Autonomous-Driving/blob/main/img/cars_in_kitti.gif)
 
 
-**TL;DR: PINI-SLAM is PIN-SLAM with IMU**
+<!-- **TL;DR: PINI-SLAM is PIN-SLAM with IMU** -->
 
 <!-- ![pin_slam_teaser](https://github.com/PRBonn/PIN_SLAM/assets/34207278/b5ab4c89-cdbe-464e-afbe-eb432b42fccc)
 
