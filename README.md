@@ -23,7 +23,7 @@
 
   <h3 align="center">
     <a href="https://drive.google.com/file/d/1NdCuBoUGV2wjjRHFqXMx2dCUmqq9OKa5/view?usp=sharing">Paper</a> |
-    <a href="https://drive.google.com/file/d/1okD68JWz2OviITLSVPZQxJ-LuHRkJIrw/view?usp=sharing">Presentation</a> |
+    <a href="https://drive.google.com/file/d/1okD68JWz2OviITLSVPZQxJ-LuHRkJIrw/view?usp=sharing">Presentation</a>
   </h3>
 
   <div align="center">
