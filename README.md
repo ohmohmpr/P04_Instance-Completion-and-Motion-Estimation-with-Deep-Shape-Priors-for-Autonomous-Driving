@@ -13,16 +13,17 @@
   <p align="center">
     <a href=""><strong>Panyawat Ohm Rattana</strong></a>
     .
-    <a href=""><strong>Shashank</strong></a>
+    <a href=""><strong>Shashank Dammalapati</strong></a>
     .
     <a href="https://www.ipb.uni-bonn.de/people/yue-pan/"><strong>Yue Pan</strong></a>
-    <!-- <a href="https://www.ipb.uni-bonn.de/people/cyrill-stachniss/"><strong>Cyrill Stachniss</strong></a> -->
+    .
+    <a href=""><strong>Xingguang (Starry) Zhong</strong></a>
   </p>
   <p align="center"><a href="https://www.ipb.uni-bonn.de"><strong>University of Bonn</strong></a>
 
   <h3 align="center">
-    <!-- <a href="https://drive.google.com/file/d/1gY25pfbnZ_KeUwcbUAccAKJr72j1Wias/view?usp=sharing">Paper</a> |
-    <a href="https://docs.google.com/presentation/d/1rFiMRartneJGU4c9A1rqQXVVotHU9rTvLhfQCqjQ6PQ/edit?usp=sharing">Presentation</a> | -->
+    <a href="https://drive.google.com/file/d/1NdCuBoUGV2wjjRHFqXMx2dCUmqq9OKa5/view?usp=sharing">Paper</a> |
+    <a href="https://drive.google.com/file/d/1okD68JWz2OviITLSVPZQxJ-LuHRkJIrw/view?usp=sharing">Presentation</a> |
   </h3>
 
   <div align="center">
